@@ -5,11 +5,15 @@ project (pc_server)
 set(CMAKE_CXX_STANDARD 14)
 
 # 是否使用asan进行内存泄漏检测
-option(WITH_ASAN "Enable AddressSanitizer (ASan)" ON)
+#option(WITH_ASAN "Enable AddressSanitizer (ASan)" ON)
+option(WITH_ASAN "Enable AddressSanitizer (ASan)" OFF)
 option(WITH_DEBUG "Enable DEBUG" ON)
 if(WITH_ASAN)
 	message("WITH_ASAN")
-	add_definitions("-fsanitize=address")
+	add_definitions("-fsanitize=address -fno-omit-frame-pointer")
+    #-fsanitize=address 是开启内存越界检测
+    #-fno-omit-frame-pointer 是去使能栈溢出保护
+    #-static-libasan 是静态链接asan
 	link_libraries("asan")
 endif()
 if(WITH_DEBUG)
@@ -26,7 +30,6 @@ set(INC_DIR /usr/include /usr/local/include . ../3part ../3part/ini  ../3part/sp
 set(LINK_DIR /usr/lib /usr/local/lib ../lib)
 include_directories(${INC_DIR})
 link_directories(${LINK_DIR})
-
 
 link_libraries(pthread event.a event_pthreads.a event_openssl.a spdlog.a hiredis.a)
 

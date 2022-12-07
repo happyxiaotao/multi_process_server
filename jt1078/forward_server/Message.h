@@ -6,11 +6,11 @@ namespace forward
 {
     struct Message
     {
-        Message(const jt1078::packet_t &pkt, iccid_t iccid) : m_pkt(pkt), m_iccid(iccid) {}
+        Message(const jt1078::packet_t &pkt, device_id_t device_id) : m_pkt(pkt), m_device_id(device_id) {}
         inline const jt1078::packet_t &GetPkt() const { return m_pkt; }
-        inline const iccid_t &GetIccid() const { return m_iccid; }
+        inline const device_id_t &GetDeviceId() const { return m_device_id; }
         const jt1078::packet_t &m_pkt;
-        const iccid_t m_iccid;
+        const device_id_t m_device_id;
     };
 } // namespace forward
 #endif // FORWARD_SERVER_MESSAGE_H

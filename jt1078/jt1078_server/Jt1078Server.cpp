@@ -63,8 +63,8 @@ void Jt1078Server::OnPacketError(const CarSessionPtr &car, TcpErrorType error_ty
 }
 void Jt1078Server::OnPacketCompleted(const CarSessionPtr &car, const jt1078::packet_t &pkt)
 {
-    car->UpdateIccidIfEmpty(pkt.m_header->BCDSIMCardNumber, pkt.m_header->Bt1LogicChannelNumber);
-    iccid_t iccid = car->GetIccid();
+    car->UpdateDeviceIdIfEmpty(pkt.m_header->BCDSIMCardNumber, pkt.m_header->Bt1LogicChannelNumber);
+    device_id_t device_id= car->GetDeviceId();
     // 当接受到完整数据包之后，需要通知主服务筋进行处理（比如转发）
-    m_service->Notify1078Packet(iccid, pkt);
+    m_service->Notify1078Packet(device_id, pkt);
 }

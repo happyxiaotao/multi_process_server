@@ -7,9 +7,9 @@ PcPublisher::~PcPublisher()
 {
 }
 
-void PcPublisher::Publish(const iccid_t &iccid, const ipc::packet_t &packet)
+void PcPublisher::Publish(const device_id_t&device_id, const ipc::packet_t &packet)
 {
-    auto iter = m_channels.find(iccid);
+    auto iter = m_channels.find(device_id);
     if (iter == m_channels.end())
     {
         return;
@@ -21,10 +21,10 @@ void PcPublisher::Publish(const iccid_t &iccid, const ipc::packet_t &packet)
         pc->SendPacket(packet);
     }
 }
-void PcPublisher::AddSubscriber(const iccid_t &iccid, const PcSessionPtr &pc)
+void PcPublisher::AddSubscriber(const device_id_t&device_id, const PcSessionPtr &pc)
 {
     ChannelPtr channel = nullptr;
-    auto iter = m_channels.find(iccid);
+    auto iter = m_channels.find(device_id);
     if (iter != m_channels.end())
     {
         channel = iter->second;
@@ -33,13 +33,13 @@ void PcPublisher::AddSubscriber(const iccid_t &iccid, const PcSessionPtr &pc)
     if (channel == nullptr)
     {
         channel = std::make_shared<Channel>();
-        m_channels[iccid] = channel;
+        m_channels[device_id] = channel;
     }
     channel->insert(std::pair<session_id_t, PcSessionPtr>(pc->GetSessionId(), pc));
 }
-void PcPublisher::DelSubscriber(const iccid_t &iccid, const PcSessionPtr &pc)
+void PcPublisher::DelSubscriber(const device_id_t&device_id, const PcSessionPtr &pc)
 {
-    auto iter = m_channels.find(iccid);
+    auto iter = m_channels.find(device_id);
     if (iter == m_channels.end())
     {
         return;

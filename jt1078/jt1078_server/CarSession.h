@@ -13,12 +13,12 @@ enum class CarDisconnectCause : int
     RemoteClose = 1,         // 对端关闭
     ReadError = 2,           // read调用返回-1
     InvalidJt1078Pkt = 3,    //不合理的jt1078包
-    InvalidIccId = 4,        //不对的iccid
+    InvalidDeviceId = 4,        //不对的deviceId
     FirstReceiveTimeout = 5, // 第一次读取数据超时（避免异常连接占用资源）
     HandlerError = 6,        // 消息处理失败
     WebClose = 7,            // 前段关闭了网页
     SrsPublishError = 8,     // srs推流失败，可能srs断开或推流数据异常
-    KickCar = 9,             //互踢，存在两个相同的iccid，会踢掉之前的
+    KickCar = 9,             //互踢，存在两个相同的device_id,会踢掉之前的
     OtherCause = 10,         //其他清空（目前还未发现使用的地方）
 };
 
@@ -34,14 +34,14 @@ public:
     typedef std::function<void(const CarSessionPtr &car, TcpErrorType error)> FunctorOnError;
 
 public:
-    inline const std::string &GetIccidStr() const { return m_strIccid; }
-    inline iccid_t GetIccid() const { return m_iccid; }
+    inline const std::string &GetDeviceIdStr() const { return m_strDeviceId; }
+    inline device_id_t GetDeviceId() const { return m_device_id; }
     inline void SetDisconnectCause(CarDisconnectCause cause) { m_disconnect_cause = cause; }
 
     inline void SetPacketComplete(const FunctorPacketComplete &functor) { m_functor_complete = functor; }
     inline void SetPacketError(const FunctorOnError &functor) { m_functor_error = functor; }
 
-    void UpdateIccidIfEmpty(const uint8_t *pSimCardNumber, uint8_t uLogicChannelNumber);
+    void UpdateDeviceIdIfEmpty(const uint8_t *pSimCardNumber, uint8_t uLogicChannelNumber);
 
 private:
     virtual void OnMessage(const TcpSessionPtr &tcp, const Buffer &buffer) override;
@@ -51,8 +51,8 @@ private:
     void ParseBuffer(const Buffer &buffer);
 
 private:
-    std::string m_strIccid;
-    iccid_t m_iccid;
+    std::string m_strDeviceId;
+    device_id_t m_device_id;
 
     jt1078::decoder_t m_decoder;
     CarDisconnectCause m_disconnect_cause;

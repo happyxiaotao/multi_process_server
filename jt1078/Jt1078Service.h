@@ -17,12 +17,12 @@ public:
     bool Start();
 
 public:
-    void Notify1078Packet(iccid_t iccid, const jt1078::packet_t &pkt);
+    void Notify1078Packet(device_id_t device_id, const jt1078::packet_t &pkt);
 
 public:
     // bConnect=true 向808服务器发送消息，通知汽车连接本服务器
     // bConnect=false 向808服务器发送消息，通知汽车断开本服务器连接
-    void SendCommandTo808(const std::string &strIccid, bool bConnect);
+    void SendCommandTo808(const std::string &strDeviceId, bool bConnect);
 
 private:
     std::unique_ptr<Jt1078Server> m_jt1078_server;

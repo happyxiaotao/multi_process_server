@@ -91,10 +91,10 @@ void PcServer::OnPacketCompleted(const PcSessionPtr &pc, const ipc::packet_t &pa
 
     switch (packet.m_uPktType)
     {
-    case ipc::IPC_PKT_SUBSCRIBE_ICCID:
+    case ipc::IPC_PKT_SUBSCRIBE_DEVICD_ID:
         ProcessPcPacket_Subscribe(pc, packet);
         break;
-    case ipc::IPC_PKT_UNSUBSCRIBE_ICCID:
+    case ipc::IPC_PKT_UNSUBSCRIBE_DEVICD_ID:
         ProcessPcPacket_UnSubscribe(pc, packet);
         break;
     default:
@@ -107,11 +107,11 @@ void PcServer::OnPacketError(const PcSessionPtr &pc, TcpErrorType error_type)
     m_pc_publisher.DelSubscriber(pc);
     m_pc_manager.DelPc(pc);
 
-    // 目前限制，一个PcSession只能有订阅一个iccid
-    const auto &strIccid = pc->GetIccid();
+    // 目前限制，一个PcSession只能有订阅一个device_id
+    const auto &strDeviceId = pc->GetDeviceId();
     if (m_client->IsConnected())
     {
-        m_client->SendPacket(ipc::IPC_PKT_UNSUBSCRIBE_ICCID, strIccid.c_str(), strIccid.size());
+        m_client->SendPacket(ipc::IPC_PKT_UNSUBSCRIBE_DEVICD_ID, strDeviceId.c_str(), strDeviceId.size());
     }
 }
 
@@ -127,14 +127,14 @@ void PcServer::OnClientConnect(const Jt1078ClientPtr &client, bool bOk)
 
 void PcServer::OnClientMessage(const Jt1078ClientPtr &client, const ipc::packet_t &packet)
 {
-    //   Trace("PcServer::OnClientMessage, sesion_id:{}, packet type:{},ipc_pkt.m_uHeadLength={},ipc_pkt.m_uPktSeqId={},ipc_pkt.m_uDataLength={}",
-    //         client->GetSessionId(), packet.m_uPktType, packet.m_uHeadLength, packet.m_uPktSeqId, packet.m_uDataLength);
+    // Trace("PcServer::OnClientMessage, sesion_id:{}, packet type:{},ipc_pkt.m_uHeadLength={},ipc_pkt.m_uPktSeqId={},ipc_pkt.m_uDataLength={}",
+    //       client->GetSessionId(), packet.m_uPktType, packet.m_uHeadLength, packet.m_uPktSeqId, packet.m_uDataLength);
 
     if (packet.m_uPktType == ipc::IPC_PKT_JT1078_PACKET)
     {
-        iccid_t iccid;
-        memcpy(&iccid, packet.m_data, sizeof(iccid));
-        m_pc_publisher.Publish(iccid, packet);
+        device_id_t device_id;
+        memcpy(&device_id, packet.m_data, sizeof(device_id));
+        m_pc_publisher.Publish(device_id, packet);
     }
 }
 void PcServer::OnClientError(const Jt1078ClientPtr &client, TcpErrorType error_type)
@@ -154,7 +154,7 @@ void PcServer::OnConnectTimer()
 }
 void PcServer::OnHeartbeatTimer()
 {
-    Trace("PcServer::OnHeartbeatTimer");
+    // Trace("PcServer::OnHeartbeatTimer");
     if (m_client->IsConnected())
     {
         m_client->SendPacket(ipc::IPC_PKT_HEARTBEAT, "", 0);
@@ -195,31 +195,31 @@ bool PcServer::AsyncConnectServer()
 
 void PcServer::ProcessPcPacket_Subscribe(const PcSessionPtr &pc, const ipc::packet_t &packet)
 {
-    std::string strIccid(packet.m_data, packet.m_uDataLength);
-    Trace("pc subscribe iccid:{}, session_id:{}", strIccid, pc->GetSessionId());
+    std::string strDeviceId(packet.m_data, packet.m_uDataLength);
+    Trace("pc subscribe device_id:{}, session_id:{}", strDeviceId, pc->GetSessionId());
 
-    // 如果存在旧的iccid，则需要通知取消订阅旧的数据包
-    const std::string &strOldIccid = pc->GetIccid();
-    if (!strOldIccid.empty() && strOldIccid != strIccid)
+    // 如果存在旧的device，则需要通知取消订阅旧的数据包
+    const std::string &strOldDeviceId = pc->GetDeviceId();
+    if (!strOldDeviceId.empty() && strOldDeviceId != strDeviceId)
     {
-        m_client->SendPacket(ipc::IPC_PKT_UNSUBSCRIBE_ICCID, strOldIccid.c_str(), strOldIccid.size());
+        m_client->SendPacket(ipc::IPC_PKT_UNSUBSCRIBE_DEVICD_ID, strOldDeviceId.c_str(), strOldDeviceId.size());
     }
-    pc->SetIccid(strIccid);
-    if (!strIccid.empty())
+    pc->SetDeviceId(strDeviceId);
+    if (!strDeviceId.empty())
     {
-        iccid_t iccid = GenerateIccid(strIccid);
-        m_pc_publisher.AddSubscriber(iccid, pc);
-        m_client->SendPacket(ipc::IPC_PKT_SUBSCRIBE_ICCID, strIccid.c_str(), strIccid.size());
+        device_id_t device_id = GenerateDeviceId(strDeviceId);
+        m_pc_publisher.AddSubscriber(device_id, pc);
+        m_client->SendPacket(ipc::IPC_PKT_SUBSCRIBE_DEVICD_ID, strDeviceId.c_str(), strDeviceId.size());
     }
 }
 void PcServer::ProcessPcPacket_UnSubscribe(const PcSessionPtr &pc, const ipc::packet_t &packet)
 {
-    const auto &strIccid = pc->GetIccid();
-    Trace("pc unsubscribe iccid:{}, session_id:{}", strIccid, pc->GetSessionId());
-    if (!strIccid.empty())
+    const auto &strDeviceId = pc->GetDeviceId();
+    Trace("pc unsubscribe device_id:{}, session_id:{}", strDeviceId, pc->GetSessionId());
+    if (!strDeviceId.empty())
     {
-        iccid_t iccid = GenerateIccid(strIccid);
-        m_pc_publisher.DelSubscriber(iccid, pc);
-        m_client->SendPacket(ipc::IPC_PKT_UNSUBSCRIBE_ICCID, strIccid.c_str(), strIccid.size());
+        device_id_t device_id = GenerateDeviceId(strDeviceId);
+        m_pc_publisher.DelSubscriber(device_id, pc);
+        m_client->SendPacket(ipc::IPC_PKT_UNSUBSCRIBE_DEVICD_ID, strDeviceId.c_str(), strDeviceId.size());
     }
 }

@@ -20,19 +20,24 @@ public:
         uint64_t duration_ms = current_ms - m_start_time_ms;
         // 单位换算成 kb/s
         char buf[128];
-        int nret = snprintf(buf, sizeof(buf) - 1, "live:%lums,read bytes:%ld,write bytse:%ld,read rate:%.2lfkb/s,write rate:%.2lfkb/s",
-                            duration_ms, m_read_bytes * 8, m_write_bytes * 8, GetRate(m_read_bytes, duration_ms), GetRate(m_write_bytes, duration_ms));
+        int nret = snprintf(buf, sizeof(buf) - 1,
+                            "live duration:%.2lf(second),read:%ld(byte),write:%ld(byte),read rate:%.2lf(kbyte/s),write rate:%.2lf(kbyte/s)",
+                            duration_ms / 1000.0, m_read_bytes, m_write_bytes, GetRate_KBytePS(m_read_bytes, duration_ms), GetRate_KBytePS(m_write_bytes, duration_ms));
         buf[nret] = '\0';
         return std::string(buf, nret);
     }
 
-    double GetRate(uint64_t bytes, uint64_t duration_ms)
+    // 获取KBytes/S的值   = bytes / second
+    double GetRate_KBytePS(uint64_t byte, double duration_ms)
     {
         if (duration_ms == 0)
         {
             return 0;
         }
-        return (bytes * 8) / 1000 / (duration_ms / 1000.0); // bytes->kbit  ms->second
+        double kbyte = byte / 1024.0;
+        double s = duration_ms / 1000.0;
+        double kbyteps = kbyte / s;
+        return kbyteps;
     }
 
 private:

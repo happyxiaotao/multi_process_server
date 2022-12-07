@@ -110,8 +110,8 @@ namespace ipc
         }
         auto &my_packet = _GetPacket();
         memcpy(my_packet.m_data, m_buffer.GetBuffer(), m_howmuch);
-        m_buffer.Skip(m_howmuch);
         my_packet.m_data[m_howmuch] = '\0';
+        m_buffer.Skip(m_howmuch);
         return kNoError;
     }
 

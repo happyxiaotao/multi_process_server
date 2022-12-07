@@ -66,21 +66,21 @@ bool Jt1078Service::Start()
     return true;
 }
 
-void Jt1078Service::Notify1078Packet(iccid_t iccid, const jt1078::packet_t &pkt)
+void Jt1078Service::Notify1078Packet(device_id_t device_id ,const jt1078::packet_t &pkt)
 {
-    m_forward_server->Publish(iccid, pkt);
+    m_forward_server->Publish(device_id, pkt);
 }
 
-void Jt1078Service::SendCommandTo808(const std::string &strIccid, bool bConnect)
+void Jt1078Service::SendCommandTo808(const std::string &strDeviceId, bool bConnect)
 {
-    if (strIccid.empty() || strIccid.size() != 14)
+    if (strDeviceId.empty() || strDeviceId.size() != 14)
     {
-        Error("Jt1078Service::SendCommandTo808 failed, invalid strIccid:{},bConnected:{}", strIccid, bConnect);
+        Error("Jt1078Service::SendCommandTo808 failed, invalid strDeviceId:{},len:{},bConnected:{}", strDeviceId, strDeviceId.size(), bConnect);
         return;
     }
 
-    const std::string strSim = strIccid.substr(0, 12);
-    std::string strLogicNumber = strIccid.substr(12, 2);
+    const std::string strSim = strDeviceId.substr(0, 12);
+    std::string strLogicNumber = strDeviceId.substr(12, 2);
     if (strLogicNumber[0] == '0')
     {
         strLogicNumber[0] = strLogicNumber[1];

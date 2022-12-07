@@ -59,26 +59,26 @@ namespace forward
     ssize_t Subscriber::SendMsg(const Message &message)
     {
         const jt1078::packet_t &jt1078_pkt = message.GetPkt();
-        auto iccid = message.GetIccid();
-        return SendMsg(jt1078_pkt, iccid);
+        auto device_id = message.GetDeviceId();
+        return SendMsg(jt1078_pkt, device_id);
     }
 
-    ssize_t Subscriber::SendMsg(const jt1078::packet_t &jt1078_pkt, iccid_t iccid)
+    ssize_t Subscriber::SendMsg(const jt1078::packet_t &jt1078_pkt, device_id_t device_id)
     {
         ipc::packet_t ipc_pkt;
         struct iovec iov[4];
         const int iovcnt = 4;
-        InitIovecByPkt(iov, iovcnt, ipc_pkt, jt1078_pkt, iccid);
+        InitIovecByPkt(iov, ipc_pkt, jt1078_pkt, device_id);
         return SendMsg(iov, iovcnt);
     }
     void Subscriber::AddPendingMsg(const Message &message)
     {
         const auto &jt1078_pkt = message.GetPkt();
-        auto iccid = message.GetIccid();
+        auto device_id = message.GetDeviceId();
         struct iovec iov[4];
         const int iovcnt = 4;
         ipc::packet_t ipc_pkt;
-        InitIovecByPkt(iov, iovcnt, ipc_pkt, jt1078_pkt, iccid);
+        InitIovecByPkt(iov, ipc_pkt, jt1078_pkt, device_id);
         AddPendingMsg(iov, iovcnt);
     }
     void Subscriber::AddPendingMsg(struct iovec *iov, int iovcnt)
@@ -130,17 +130,18 @@ namespace forward
         }
         return ret;
     }
-    void Subscriber::InitIovecByPkt(struct iovec *iov, int iovcnt, ipc::packet_t &ipc_pkt, const jt1078::packet_t &jt1078_pkt, iccid_t iccid)
+    // 注：device_id一定要传引用，不能传值，因为是在外界调用的iov进行发送，此时iov[1]的内容不确实啥。不是期望的效果。
+    void Subscriber::InitIovecByPkt(struct iovec *iov, ipc::packet_t &ipc_pkt, const jt1078::packet_t &jt1078_pkt, const device_id_t &device_id)
     {
         ipc_pkt.m_uHeadLength = sizeof(ipc::packet_t);
-        ipc_pkt.m_uDataLength = sizeof(jt1078::header_t) + sizeof(iccid) + jt1078_pkt.m_header->WdBodyLen;
+        ipc_pkt.m_uDataLength = sizeof(device_id_t) + sizeof(jt1078::header_t) + jt1078_pkt.m_header->WdBodyLen;
         ipc_pkt.m_uPktSeqId = GetIpcPktSeqId();
-        ipc_pkt.m_uPktType = ipc::IPC_PKT_JT1078_PACKET;    //注意中间插入了个iccid
+        ipc_pkt.m_uPktType = ipc::IPC_PKT_JT1078_PACKET; //注意中间插入了个device_id
         // 从1开始，0被ipc::packet_t占用了
         iov[0].iov_base = (void *)&ipc_pkt;
         iov[0].iov_len = sizeof(ipc::packet_t);
-        iov[1].iov_base = (void *)&iccid;
-        iov[1].iov_len = sizeof(iccid);
+        iov[1].iov_base = (void *)&device_id;
+        iov[1].iov_len = sizeof(device_id);
         iov[2].iov_base = jt1078_pkt.m_header;
         iov[2].iov_len = sizeof(jt1078::header_t);
         iov[3].iov_base = jt1078_pkt.m_body;

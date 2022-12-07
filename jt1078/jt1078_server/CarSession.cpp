@@ -2,15 +2,15 @@
 #include "Jt1078Util.h"
 #include "../../core/log/Log.hpp"
 
-CarSession::CarSession() : m_iccid(INVALID_ICCID), m_disconnect_cause(CarDisconnectCause::UnknownCause)
+CarSession::CarSession() : m_device_id(INVALID_DEVICE_ID), m_disconnect_cause(CarDisconnectCause::UnknownCause)
 {
     m_traffic_stat.Start();
 }
 
 CarSession::~CarSession()
 {
-    Info("CarSession::~CarSession, remote_ip:{},remote_port:{},socket:{},iccid:{:x},disconnect_case:{},traffic_stat:{}",
-         GetRemoteIp(), GetRemotePort(), GetSocketFd(), m_iccid, static_cast<int>(m_disconnect_cause), m_traffic_stat.Dump());
+    Info("CarSession::~CarSession, remote_ip:{},remote_port:{},socket:{},device_id:{:014x},disconnect_case:{},traffic_stat:{}",
+         GetRemoteIp(), GetRemotePort(), GetSocketFd(), m_device_id, static_cast<int>(m_disconnect_cause), m_traffic_stat.Dump());
 }
 void CarSession::OnMessage(const TcpSessionPtr &tcp, const Buffer &buffer)
 {
@@ -66,12 +66,12 @@ void CarSession::ParseBuffer(const Buffer &buffer)
         //  sword::Trace("CarSession::ParseBuffer,need more buffer,buffer length:{},need length:{}", m_decoder.GetReadableBytes(), m_decoder.GetHowmuch());
     }
 }
-void CarSession::UpdateIccidIfEmpty(const uint8_t *pSimCardNumber, uint8_t uLogicChannelNumber)
+void CarSession::UpdateDeviceIdIfEmpty(const uint8_t *pSimCardNumber, uint8_t uLogicChannelNumber)
 {
-    if (m_iccid == INVALID_ICCID || m_strIccid.empty())
+    if (m_device_id== INVALID_DEVICE_ID|| m_strDeviceId.empty())
     {
-        m_strIccid = GenerateIccidStr(pSimCardNumber, uLogicChannelNumber);
-        m_iccid = GenerateIccid(m_strIccid);
-        Debug("CarSession::UpdateIccidIfEmpty,session_id:{},iccid:{:x}", GetSessionId(), m_iccid);
+        m_strDeviceId= GenerateDeviceIdStr(pSimCardNumber, uLogicChannelNumber);
+        m_device_id= GenerateDeviceId(m_strDeviceId);
+        Debug("CarSession::UpdateDeviceIdIfEmpty,session_id:{},device_id:{:014x}", GetSessionId(), m_device_id);
     }
 }

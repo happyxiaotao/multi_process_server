@@ -14,15 +14,15 @@ public:
     ~PcPublisher();
 
 public:
-    void Publish(const iccid_t &iccid, const ipc::packet_t &packet);
-    void AddSubscriber(const iccid_t &iccid, const PcSessionPtr &pc);
+    void Publish(const device_id_t&device_id, const ipc::packet_t &packet);
+    void AddSubscriber(const device_id_t&device_id, const PcSessionPtr &pc);
 
     //删除指定通话的会话
-    void DelSubscriber(const iccid_t &iccid, const PcSessionPtr &pc);
+    void DelSubscriber(const device_id_t&device_id, const PcSessionPtr &pc);
     //删除所有通道中的此会话
     void DelSubscriber(const PcSessionPtr &pc);
 
 private:
-    std::map<iccid_t, ChannelPtr> m_channels;
+    std::map<device_id_t, ChannelPtr> m_channels;
 };
 #endif // PC_SERVER_PC_PUBLISHER_H

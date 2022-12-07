@@ -23,7 +23,7 @@ namespace forward
         void OnPacketError(const SubscriberPtr &subscriber, TcpErrorType error_type);
         void OnPacketCompleted(const SubscriberPtr &subscriber, const ipc::packet_t &packet);
 
-        void Publish(iccid_t iccid, const jt1078::packet_t &pkt);
+        void Publish(device_id_t device_id, const jt1078::packet_t &pkt);
 
     private:
         // 处理订阅请求
@@ -33,10 +33,10 @@ namespace forward
 
     private:
         // 通知主服务，去向808服务器发送消息，让汽车连过来或断开连接
-        void NotifyOpenCarTerminal(iccid_t iccid);
-        void NotifyOpenCarTerminal(const std::string &strIccid);
-        void NotifyCloseCarTerminal(iccid_t iccid);
-        void NotifyCloseCarTerminal(const std::string &strIccid);
+        void NotifyOpenCarTerminal(device_id_t device_id);
+        void NotifyOpenCarTerminal(const std::string &strDeviceId);
+        void NotifyCloseCarTerminal(device_id_t device_id);
+        void NotifyCloseCarTerminal(const std::string &strDeviceId);
 
         // 如果订阅列表为空，则向redis发送断开请求
         void ReleaseChannelIfEmptySubscriber();

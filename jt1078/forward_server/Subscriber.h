@@ -39,11 +39,11 @@ namespace forward
         virtual void OnError(const TcpSessionPtr &tcp, TcpErrorType error_type) override;
 
     private:
-        ssize_t SendMsg(const jt1078::packet_t &jt1078_pkt, iccid_t iccid);
+        ssize_t SendMsg(const jt1078::packet_t &jt1078_pkt, device_id_t device_id);
         ssize_t SendMsg(struct iovec *iov, int iovcnt, bool bInPendingList = false);
         void AddPendingMsg(struct iovec *iov, int iovcnt);
 
-        void InitIovecByPkt(struct iovec *iov, int iovcnt, ipc::packet_t &ipc_pkt, const jt1078::packet_t &jt1078_pkt, iccid_t iccid);
+        void InitIovecByPkt(struct iovec *iov, ipc::packet_t &ipc_pkt, const jt1078::packet_t &jt1078_pkt, const device_id_t &device_id);
 
         inline uint32_t GetIpcPktSeqId();
 
@@ -57,7 +57,7 @@ namespace forward
         std::list<std::string> m_pending_buffer_list; // 未发送成功的数据缓存
         uint32_t m_uLastIpcPktSeqId;
 
-        std::set<iccid_t> m_setIccid; //订阅的iccid集合
+        // std::set<device_id_t> m_setDeviceId; //订阅的device_id集合
     };
 } // namespace forward
 
