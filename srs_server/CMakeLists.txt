@@ -1,6 +1,6 @@
 cmake_minimum_required(VERSION 3.1)
 
-project (pc_server)
+project (srs_server)
 
 set(CMAKE_CXX_STANDARD 14)
 
@@ -31,9 +31,9 @@ set(LINK_DIR /usr/lib /usr/local/lib ../lib)
 include_directories(${INC_DIR})
 link_directories(${LINK_DIR})
 
-link_libraries(pthread event.a event_pthreads.a spdlog.a)
+link_libraries(pthread event.a event_pthreads.a event_openssl.a spdlog.a hiredis.a)
 
-add_executable(pc_server
+add_executable(srs_server
     ../core/log/Log.cpp
     ../core/eventloop/EventLoop.cpp
     ../core/socket/Socket.cpp
@@ -42,6 +42,8 @@ add_executable(pc_server
     ../core/tcp/TcpClient.cpp
     ../core/buffer/Buffer.cpp
     ../core/time/TimeUtil.cpp
+    ../core/database/RedisClient.cpp
+    ../core/database/RedisMqServer.cpp
     ../core/timer/EventWatcher.cpp
     ../core/timer/TimerEventWatcher.cpp
     ../core/ipc_packet/IpcPktDecoder.cpp

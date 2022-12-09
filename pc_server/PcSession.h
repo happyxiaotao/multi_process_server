@@ -19,6 +19,7 @@ public:
     inline void SetPacketError(const FunctorOnError &functor) { m_functor_error = functor; }
     inline const std::string &GetDeviceId() const { return m_strDeviceId; }
     inline void SetDeviceId(const std::string &strDeviceId) { m_strDeviceId = strDeviceId; }
+    inline void ClearDeviceId() { m_strDeviceId.clear(); }
 
     ssize_t SendPacket(const ipc::packet_t &packet);
 
@@ -35,7 +36,7 @@ private:
     FunctorPacketComplete m_functor_complete; // 一个完整包的处理函数
     FunctorOnError m_functor_error;
 
-    std::string m_strDeviceId; //观看的device_id
+    std::string m_strDeviceId; // 观看的device_id
 };
 
 #endif // PC_SERVER_PC_SESSION_H

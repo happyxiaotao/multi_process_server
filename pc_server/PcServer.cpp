@@ -109,7 +109,7 @@ void PcServer::OnPacketError(const PcSessionPtr &pc, TcpErrorType error_type)
 
     // 目前限制，一个PcSession只能有订阅一个device_id
     const auto &strDeviceId = pc->GetDeviceId();
-    if (m_client->IsConnected())
+    if (m_client->IsConnected() && !strDeviceId.empty())
     {
         m_client->SendPacket(ipc::IPC_PKT_UNSUBSCRIBE_DEVICD_ID, strDeviceId.c_str(), strDeviceId.size());
     }
@@ -120,7 +120,7 @@ void PcServer::OnClientConnect(const Jt1078ClientPtr &client, bool bOk)
     Trace("PcServer::OnClientConnect, client session_id:{}, bOk:{}", client->GetSessionId(), bOk);
     if (!bOk)
     {
-        m_connect_timer->StartTimer(); //启动重连机制
+        m_connect_timer->StartTimer(); // 启动重连机制
         return;
     }
 }
@@ -142,7 +142,7 @@ void PcServer::OnClientError(const Jt1078ClientPtr &client, TcpErrorType error_t
     Error("PcServer::OnClientError, client session_id:{},remote_ip:{},remote_port:{},fd:{},error_type:{},uLastReceiveIpcPktSeqId:{}",
           client->GetSessionId(), client->GetRemoteIp(), client->GetRemotePort(), client->GetSocketFd(), error_type, m_client->GetLastReceiveIpcPktSeqId());
     m_client.reset();
-    m_connect_timer->StartTimer(); //启动重连机制
+    m_connect_timer->StartTimer(); // 启动重连机制
 }
 void PcServer::OnConnectTimer()
 {
@@ -215,6 +215,7 @@ void PcServer::ProcessPcPacket_Subscribe(const PcSessionPtr &pc, const ipc::pack
 void PcServer::ProcessPcPacket_UnSubscribe(const PcSessionPtr &pc, const ipc::packet_t &packet)
 {
     const auto &strDeviceId = pc->GetDeviceId();
+    pc->ClearDeviceId();
     Trace("pc unsubscribe device_id:{}, session_id:{}", strDeviceId, pc->GetSessionId());
     if (!strDeviceId.empty())
     {
