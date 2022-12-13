@@ -214,7 +214,7 @@ void PcServer::ProcessPcPacket_Subscribe(const PcSessionPtr &pc, const ipc::pack
 }
 void PcServer::ProcessPcPacket_UnSubscribe(const PcSessionPtr &pc, const ipc::packet_t &packet)
 {
-    const auto &strDeviceId = pc->GetDeviceId();
+    auto strDeviceId = pc->GetDeviceId();
     pc->ClearDeviceId();
     Trace("pc unsubscribe device_id:{}, session_id:{}", strDeviceId, pc->GetSessionId());
     if (!strDeviceId.empty())
