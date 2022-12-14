@@ -21,7 +21,7 @@ public:
     inline void SetDeviceId(const std::string &strDeviceId) { m_strDeviceId = strDeviceId; }
     inline void ClearDeviceId() { m_strDeviceId.clear(); }
 
-    ssize_t SendPacket(const ipc::packet_t &packet);
+    bool SendPacket(const ipc::packet_t &packet);
 
 private:
     virtual void OnMessage(const TcpSessionPtr &tcp, const Buffer &buffer) override;

@@ -65,6 +65,33 @@ bool TcpSession::Init(EventLoop *eventloop, int fd, const std::string &remote_ip
     return true;
 }
 
+bool TcpSession::SendPendingBuffer()
+{
+    while (!EmptyPendingBuffer())
+    {
+        const std::string &str = FrontPendingBuffer();
+        int nerrno = 0;
+        ssize_t written = SendBuffer(str.c_str(), str.size(), nerrno);
+        if (written < 0)
+        {
+            break;
+        }
+        else if (written < (ssize_t)str.size()) // 没有发送完，剩下的留着下次继续发
+        {
+            // 获取剩余未发送的数据
+            std::string strLeft = str.substr(written);
+            PopFrontPendingBuffer();
+            PushFrontPendingBuffer(std::move(strLeft));
+            break;
+        }
+        else
+        {
+            PopFrontPendingBuffer();
+        }
+    }
+    return EmptyPendingBuffer();
+}
+
 void TcpSession::HandleReadEvent(evutil_socket_t socket, short events)
 {
     Buffer buffer;
@@ -129,20 +156,20 @@ ssize_t TcpSession::SendBuffer(const struct iovec *iov, int iovcnt, int &nerrno)
         }
         if (!(nerrno == EAGAIN || nerrno == EWOULDBLOCK))
         {
-            Error("TcpSession::SendBuffer, use function writev, fd:{},length:{},nwritten:{},errno:{},error:{}",
-                  m_fd, len, nwritten, nerrno, strerror(nerrno));
+            Error("TcpSession::SendBuffer, use function writev, fd:{},length:{},nwritten:{},errno:{},error:{}", m_fd, len, nwritten, nerrno, strerror(nerrno));
+            m_bFdCanWrite = false;
         }
     }
     return nwritten;
 }
-ssize_t TcpSession::SendBuffer(const BufferPtr &buffer)
+ssize_t TcpSession::SendBuffer(const BufferPtr &buffer, int &nerrno)
 {
-    return SendBuffer(buffer->GetBuffer(), buffer->ReadableBytes());
+    return SendBuffer(buffer->GetBuffer(), buffer->ReadableBytes(), nerrno);
 }
-ssize_t TcpSession::SendBuffer(const char *buffer, size_t len)
+ssize_t TcpSession::SendBuffer(const char *buffer, size_t len, int &nerrno)
 {
     int nwritten = 0;
-    int nerrno = 0;
+    nerrno = 0;
     do
     {
         nwritten = send(m_fd, buffer, len, 0);
@@ -150,8 +177,12 @@ ssize_t TcpSession::SendBuffer(const char *buffer, size_t len)
     } while (nwritten < 0 && nerrno == EINTR);
     if (nwritten < 0)
     {
-        Error("TcpSession::SendBuffer,use function send, fd:{},length:{},nwritten:{},errno:{},error:{}",
-              m_fd, len, nwritten, nerrno, strerror(nerrno));
+        if (!(nerrno == EAGAIN || nerrno == EWOULDBLOCK))
+        {
+            Error("TcpSession::SendBuffer,use function send, fd:{},length:{},nwritten:{},errno:{},error:{}",
+                  m_fd, len, nwritten, nerrno, strerror(nerrno));
+            m_bFdCanWrite = false;
+        }
     }
     return nwritten;
 }

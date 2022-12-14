@@ -6,6 +6,7 @@
 #include <memory>
 #include <functional>
 #include <event2/event.h>
+#include <list>
 #include <sys/uio.h>
 #include "../buffer/Buffer.h"
 #include "TcpError.h"
@@ -40,15 +41,28 @@ public:
     inline void SetEventLoop(EventLoop *eventloop) { m_eventloop = eventloop; }
     inline EventLoop *GetEventLoop() { return m_eventloop; }
 
+    bool IsCanWrite() { return m_bFdCanWrite; }
     ssize_t SendBuffer(const struct iovec *iov, int iovcnt, int &nerrno);
-    ssize_t SendBuffer(const BufferPtr &buffer);
-    ssize_t SendBuffer(const char *buffer, size_t len);
+    ssize_t SendBuffer(const BufferPtr &buffer, int &nerrno);
+    ssize_t SendBuffer(const char *buffer, size_t len, int &nerrno);
 
     virtual void Clear();
 
 protected:
     virtual void OnMessage(const TcpSessionPtr &tcp, const Buffer &buffer) {}
     virtual void OnError(const TcpSessionPtr &tcp, TcpErrorType error_type) {}
+
+protected:
+    // 下面是处理，发送失败后，添加到缓存区的数据，需要调用者调用来发送或添加
+    bool EmptyPendingBuffer() { return m_pending_buffer_list.empty(); }
+    size_t SizePendingBuffer() { return m_pending_buffer_list.size(); }
+    void PushBackPendingBuffer(const char *buffer, size_t len) { m_pending_buffer_list.push_back(std::move(std::string(buffer, len))); }
+    void PushBackPendingBuffer(std::string &&buffer) { m_pending_buffer_list.push_back(std::move(buffer)); }
+    void PushFrontPendingBuffer(const char *buffer, size_t len) { m_pending_buffer_list.push_front(std::move(std::string(buffer, len))); }
+    void PushFrontPendingBuffer(std::string &&buffer) { m_pending_buffer_list.push_front(std::move(buffer)); }
+    const std::string &FrontPendingBuffer() const { return m_pending_buffer_list.front(); }
+    void PopFrontPendingBuffer() { m_pending_buffer_list.pop_front(); }
+    bool SendPendingBuffer();
 
 private:
     void HandleReadEvent(evutil_socket_t socket, short events);
@@ -68,6 +82,9 @@ private:
 
     ErrorCallBack m_error_callback;
     ReadCallBack m_read_callback;
+
+    bool m_bFdCanWrite;                           // socket是否可写，如果对端关闭了socket，则不可写。每次写入前，需要判断下，否则会有coredump
+    std::list<std::string> m_pending_buffer_list; // 未发送成功的数据缓存，需要由调用者存入或取出
 };
 
 #endif // TCP_CONN_H
