@@ -1,5 +1,4 @@
 #include "../core/eventloop/EventLoop.h"
-#include "./Jt1078Service.h"
 #include "../core/ini_config.h"
 #include "../../core/log/Log.hpp"
 
@@ -46,9 +45,8 @@ bool DoBeforeMainLoop(const std::string &strConfigFile)
     return true;
 }
 
-#include "./Jt1078ServerVersion.h"
-#include <openssl/sha.h> //使用OPENSSL_VERSION_TEXT
-#include <hiredis/hiredis.h>
+#include <event2/event.h>
+#include "./SrsServerVersion.h"
 void ShowUsage()
 {
     std::string strUsage;
@@ -56,19 +54,19 @@ void ShowUsage()
     strUsage.append("---------- build time:          " + std::string(__DATE__ " " __TIME__) + "\n");
     // libevent版本
     strUsage.append("---------- libevent version:    " + std::string(event_get_version()) + "\n");
-    // crypto版本
-    strUsage.append("---------- crypto version:      " + std::string(OPENSSL_VERSION_TEXT) + "\n");
+    // // crypto版本
+    // strUsage.append("---------- crypto version:      " + std::string(OPENSSL_VERSION_TEXT) + "\n");
     // spdlog版本
     char tmp[20];
     snprintf(tmp, sizeof(tmp), "%d.%d.%d", SPDLOG_VER_MAJOR, SPDLOG_VER_MINOR, SPDLOG_VER_PATCH);
     strUsage.append("---------- spdlog version:      " + std::string(tmp) + "\n");
     // // mysqlclient版本
     // strUsage.append("---------- mysqlclient version: " + std::string(mysql_get_client_info()) + "\n");
-    // hiredis版本
-    snprintf(tmp, sizeof(tmp), "%d.%d.%d", HIREDIS_MAJOR, HIREDIS_MINOR, HIREDIS_PATCH);
-    strUsage.append("---------- hiredis version:     " + std::string(tmp) + "\n");
-    // jt1078 server版本
-    strUsage.append("---------- server version:      " + std::string(JT1078_SERVER_VERSION) + "\n");
+    // // hiredis版本
+    // snprintf(tmp, sizeof(tmp), "%d.%d.%d", HIREDIS_MAJOR, HIREDIS_MINOR, HIREDIS_PATCH);
+    // strUsage.append("---------- hiredis version:     " + std::string(tmp) + "\n");
+    // pc server版本
+    strUsage.append("---------- server version:      " + std::string(SRS_SERVER_VERSION) + "\n");
     Info("----------------- Server Usage Begin  ---------------------\n"
          "{}"
          "----------------- Server Usage End    ---------------------\n",
@@ -80,7 +78,7 @@ int main(int argc, char **argv)
     bool bExit = false;
     const char *optstring = "f:v";
     int nOpt = -1;
-    std::string strConfigFile = "./conf/jt1078.ini";
+    std::string strConfigFile = "./conf/srs.ini";
     while ((nOpt = getopt(argc, argv, optstring)) != -1)
     {
         switch (nOpt)
@@ -110,13 +108,14 @@ int main(int argc, char **argv)
 
     ShowUsage();
 
-    Jt1078Service service;
-    if (!service.Init())
-    {
-        Error("service Init failed");
-        return 1;
-    }
-    service.Start();
-
+    /*
+        PcServer server;
+        if (!server.Init())
+        {
+            Error("pc server init failed");
+            return 2;
+        }
+        server.Start();
+    */
     return 0;
 }

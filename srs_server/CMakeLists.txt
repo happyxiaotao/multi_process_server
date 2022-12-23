@@ -49,10 +49,5 @@ add_executable(srs_server
     ../core/ipc_packet/IpcPktDecoder.cpp
     
     ../jt1078/jt1078_server/Jt1078Util.cpp
-    PcServer.cpp
-    PcSession.cpp
-    PcManager.cpp
-    PcPublisher.cpp
-    Jt1078Client.cpp
     main.cpp
 )
