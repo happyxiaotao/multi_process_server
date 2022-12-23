@@ -1,4 +1,5 @@
 #include "PcPublisher.h"
+#include "../core/log/Log.hpp"
 
 PcPublisher::PcPublisher()
 {
@@ -23,8 +24,9 @@ void PcPublisher::Publish(const device_id_t &device_id, const ipc::packet_t &pac
             pc->SendPacket(packet);
         }
         // 释放不能写入数据的，连接
-        if (pc->IsCanWrite())
+        if (!pc->IsCanWrite())
         {
+            Warn("PcPublisher::Publish, delete pc session because cannot write, session_id:{},device_id:{}", pc->GetSessionId(), pc->GetDeviceId());
             iter = channel->erase(iter);
         }
         else
@@ -66,4 +68,25 @@ void PcPublisher::DelSubscriber(const PcSessionPtr &pc)
         auto &channel = iter.second;
         channel->erase(pc->GetSessionId());
     }
+}
+
+size_t PcPublisher::SizeSubscriber(const device_id_t &device_id)
+{
+    auto iter = m_channels.find(device_id);
+    if (iter == m_channels.end())
+    {
+        return 0;
+    }
+    auto &channel = iter->second;
+    return channel->size();
+}
+
+std::set<device_id_t> PcPublisher::GetAllDeviceId()
+{
+    std::set<device_id_t> result;
+    for (auto &iter : m_channels)
+    {
+        result.insert(iter.first);
+    }
+    return result;
 }

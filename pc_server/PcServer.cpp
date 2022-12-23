@@ -89,6 +89,7 @@ void PcServer::OnPacketCompleted(const PcSessionPtr &pc, const ipc::packet_t &pa
         return;
     }
 
+    // note：不管是【订阅】还是【取消订阅】，都不能直接发送请求到jt1078_server，而是应该在需要时，再通过m_client发送请求到jt1078_server
     switch (packet.m_uPktType)
     {
     case ipc::IPC_PKT_SUBSCRIBE_DEVICD_ID:
@@ -111,7 +112,11 @@ void PcServer::OnPacketError(const PcSessionPtr &pc, TcpErrorType error_type)
     const auto &strDeviceId = pc->GetDeviceId();
     if (m_client->IsConnected() && !strDeviceId.empty())
     {
-        m_client->SendPacket(ipc::IPC_PKT_UNSUBSCRIBE_DEVICD_ID, strDeviceId.c_str(), strDeviceId.size());
+        device_id_t device_id = GenerateDeviceId(strDeviceId);
+        if (m_pc_publisher.IsEmptySubscriber(device_id))
+        {
+            m_client->SendPacket(ipc::IPC_PKT_UNSUBSCRIBE_DEVICD_ID, strDeviceId.c_str(), strDeviceId.size());
+        }
     }
 }
 
@@ -122,6 +127,15 @@ void PcServer::OnClientConnect(const Jt1078ClientPtr &client, bool bOk)
     {
         m_connect_timer->StartTimer(); // 启动重连机制
         return;
+    }
+
+    // 重连成功，需要发送订阅请求，来获取数据
+    auto result = m_pc_publisher.GetAllDeviceId();
+
+    for (auto &device_id : result)
+    {
+        auto strDeviceId = GenerateDeviceIdStrByDeviceId(device_id);
+        m_client->SendPacket(ipc::IPC_PKT_SUBSCRIBE_DEVICD_ID, strDeviceId.c_str(), strDeviceId.size());
     }
 }
 
@@ -202,14 +216,23 @@ void PcServer::ProcessPcPacket_Subscribe(const PcSessionPtr &pc, const ipc::pack
     const std::string &strOldDeviceId = pc->GetDeviceId();
     if (!strOldDeviceId.empty() && strOldDeviceId != strDeviceId)
     {
-        m_client->SendPacket(ipc::IPC_PKT_UNSUBSCRIBE_DEVICD_ID, strOldDeviceId.c_str(), strOldDeviceId.size());
+        device_id_t old_device_id = GenerateDeviceId(strOldDeviceId);
+        m_pc_publisher.DelSubscriber(old_device_id, pc);
+        if (m_pc_publisher.IsEmptySubscriber(old_device_id)) // 如果没有其他订阅者了，则通过client发送取消订阅请求
+        {
+            m_client->SendPacket(ipc::IPC_PKT_UNSUBSCRIBE_DEVICD_ID, strOldDeviceId.c_str(), strOldDeviceId.size());
+        }
     }
     pc->SetDeviceId(strDeviceId);
     if (!strDeviceId.empty())
     {
         device_id_t device_id = GenerateDeviceId(strDeviceId);
         m_pc_publisher.AddSubscriber(device_id, pc);
-        m_client->SendPacket(ipc::IPC_PKT_SUBSCRIBE_DEVICD_ID, strDeviceId.c_str(), strDeviceId.size());
+        if (m_pc_publisher.SizeSubscriber(device_id) == 1) // 只有目前一个订阅者，需要通过client来获取数据。如果>1，说明之前有人订阅过，不需要重新订阅
+                                                           // 考虑client断线重连的时候，此逻辑会不会有问题？
+        {
+            m_client->SendPacket(ipc::IPC_PKT_SUBSCRIBE_DEVICD_ID, strDeviceId.c_str(), strDeviceId.size());
+        }
     }
 }
 void PcServer::ProcessPcPacket_UnSubscribe(const PcSessionPtr &pc, const ipc::packet_t &packet)
@@ -221,6 +244,9 @@ void PcServer::ProcessPcPacket_UnSubscribe(const PcSessionPtr &pc, const ipc::pa
     {
         device_id_t device_id = GenerateDeviceId(strDeviceId);
         m_pc_publisher.DelSubscriber(device_id, pc);
-        m_client->SendPacket(ipc::IPC_PKT_UNSUBSCRIBE_DEVICD_ID, strDeviceId.c_str(), strDeviceId.size());
+        if (m_pc_publisher.IsEmptySubscriber(device_id)) // 如果没有其他订阅者了，则通过client发送取消订阅请求
+        {
+            m_client->SendPacket(ipc::IPC_PKT_UNSUBSCRIBE_DEVICD_ID, strDeviceId.c_str(), strDeviceId.size());
+        }
     }
 }

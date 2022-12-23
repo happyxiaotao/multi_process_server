@@ -17,6 +17,7 @@ public:
     CarSessionPtr GetCar(session_id_t session_id);
     void DelCar(CarSessionPtr &car, CarDisconnectCause cause);
     void DelCar(session_id_t session_id, CarDisconnectCause cause);
+    void DelCarByDeviceId(device_id_t device_id, CarDisconnectCause cause);
 
 private:
     std::map<session_id_t, CarSessionPtr> m_mapCar;

@@ -104,13 +104,18 @@ bool PcSession::SendPacket(const ipc::packet_t &packet)
             return false;
         }
     }
-    else if (ret < expect_write_len) // 没有发送完
+    else if (ret < (ssize_t)expect_write_len) // 没有发送完
     {
         size_t left_size = expect_write_len - ret;
-        Trace("PcSession::SendPacket, SendBuffer exists left, left size:{},session_id:{},device_id:{}", expect_write_len - ret, GetSessionId(), GetDeviceId());
+        Trace("PcSession::SendPacket, SendBuffer exists left,expect_write_len:{},ret:{},left size:{},session_id:{},device_id:{}", expect_write_len, ret, left_size, GetSessionId(), GetDeviceId());
         // 将剩余的填充
         const char *p = (char *)(&packet) + ret;
         PushBackPendingBuffer(p, left_size);
+    }
+    else
+    {
+        //  Trace("session_id:{},device_id:{},head len={},seq={},data len={},ret={},nerrno={}",
+        //        GetSessionId(), GetDeviceId(), packet.m_uHeadLength, packet.m_uPktSeqId, packet.m_uDataLength, ret, nerrno);
     }
 
     return true;

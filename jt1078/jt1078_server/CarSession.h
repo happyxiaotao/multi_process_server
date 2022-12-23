@@ -12,14 +12,15 @@ enum class CarDisconnectCause : int
     UnknownCause = 0,
     RemoteClose = 1,         // 对端关闭
     ReadError = 2,           // read调用返回-1
-    InvalidJt1078Pkt = 3,    //不合理的jt1078包
-    InvalidDeviceId = 4,        //不对的deviceId
+    InvalidJt1078Pkt = 3,    // 不合理的jt1078包
+    InvalidDeviceId = 4,     // 不对的deviceId
     FirstReceiveTimeout = 5, // 第一次读取数据超时（避免异常连接占用资源）
     HandlerError = 6,        // 消息处理失败
     WebClose = 7,            // 前段关闭了网页
     SrsPublishError = 8,     // srs推流失败，可能srs断开或推流数据异常
-    KickCar = 9,             //互踢，存在两个相同的device_id,会踢掉之前的
-    OtherCause = 10,         //其他清空（目前还未发现使用的地方）
+    KickCar = 9,             // 互踢，存在两个相同的device_id,会踢掉之前的，目前未实现
+    NoSubscriber = 10,       // 没有订阅者，则不需要维持此连接了
+    OtherCause = 11,         // 其他清空（目前还未发现使用的地方）
 };
 
 class CarSession;

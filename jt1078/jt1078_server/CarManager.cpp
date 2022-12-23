@@ -41,3 +41,19 @@ void CarManager::DelCar(session_id_t session_id, CarDisconnectCause cause)
     iter->second->SetDisconnectCause(cause);
     m_mapCar.erase(iter);
 }
+
+void CarManager::DelCarByDeviceId(device_id_t device_id, CarDisconnectCause cause)
+{
+    for (auto iter = m_mapCar.begin(); iter != m_mapCar.end();)
+    {
+        if (iter->second->GetDeviceId() == device_id)
+        {
+            iter->second->SetDisconnectCause(cause);
+            iter = m_mapCar.erase(iter);
+        }
+        else
+        {
+            ++iter;
+        }
+    }
+}

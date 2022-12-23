@@ -3,6 +3,7 @@
 #include "../../core/socket/Socket.h"
 #include "../../core/eventloop/EventLoop.h"
 #include "../Jt1078Service.h"
+#include "Jt1078Util.h"
 
 Jt1078Server::Jt1078Server(EventLoop *eventloop, Jt1078Service *service)
     : m_listen_port(INVALID_PORT), m_eventloop(eventloop), m_service(service)
@@ -21,6 +22,11 @@ int Jt1078Server::Listen(const std::string &ip, u_short port)
     m_listen_ip = ip;
     m_listen_port = port;
     return m_listener->Listen(ip, port);
+}
+void Jt1078Server::DisconnectCar(const std::string &strDeviceId)
+{
+    CarDisconnectCause cause = CarDisconnectCause::NoSubscriber;
+    m_manager.DelCarByDeviceId(GenerateDeviceId(strDeviceId), cause);
 }
 
 void Jt1078Server::OnNewConnection(evutil_socket_t socket, struct sockaddr *sa)
@@ -64,7 +70,7 @@ void Jt1078Server::OnPacketError(const CarSessionPtr &car, TcpErrorType error_ty
 void Jt1078Server::OnPacketCompleted(const CarSessionPtr &car, const jt1078::packet_t &pkt)
 {
     car->UpdateDeviceIdIfEmpty(pkt.m_header->BCDSIMCardNumber, pkt.m_header->Bt1LogicChannelNumber);
-    device_id_t device_id= car->GetDeviceId();
+    device_id_t device_id = car->GetDeviceId();
     // 当接受到完整数据包之后，需要通知主服务筋进行处理（比如转发）
     m_service->Notify1078Packet(device_id, pkt);
 }

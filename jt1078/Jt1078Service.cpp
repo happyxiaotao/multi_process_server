@@ -66,13 +66,14 @@ bool Jt1078Service::Start()
     return true;
 }
 
-void Jt1078Service::Notify1078Packet(device_id_t device_id ,const jt1078::packet_t &pkt)
+void Jt1078Service::Notify1078Packet(device_id_t device_id, const jt1078::packet_t &pkt)
 {
     m_forward_server->Publish(device_id, pkt);
 }
 
 void Jt1078Service::SendCommandTo808(const std::string &strDeviceId, bool bConnect)
 {
+
     if (strDeviceId.empty() || strDeviceId.size() != 14)
     {
         Error("Jt1078Service::SendCommandTo808 failed, invalid strDeviceId:{},len:{},bConnected:{}", strDeviceId, strDeviceId.size(), bConnect);
@@ -139,4 +140,9 @@ void Jt1078Service::SendCommandTo808(const std::string &strDeviceId, bool bConne
         return;
     }
     m_redis_server->RpushList(m_redis_808_list, strJson);
+}
+
+void Jt1078Service::NotifyNoSubscriber(const std::string &strDeviceId)
+{
+    m_jt1078_server->DisconnectCar(strDeviceId);
 }

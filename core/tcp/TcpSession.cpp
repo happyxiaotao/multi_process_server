@@ -19,7 +19,7 @@ void TcpSession::tcp_session_read_cb(evutil_socket_t socket, short events, void 
 }
 
 TcpSession::TcpSession() : m_remote_port(INVALID_PORT), m_session_id(GenerateSessionId()), m_eventloop(nullptr),
-                           m_fd(INVALID_SOCKET), m_read_event(nullptr)
+                           m_fd(INVALID_SOCKET), m_read_event(nullptr), m_bFdCanWrite(false)
 {
     Trace("TcpSession::TcpSession");
 }
@@ -62,6 +62,7 @@ bool TcpSession::Init(EventLoop *eventloop, int fd, const std::string &remote_ip
     m_read_event = event;
     event_add(m_read_event, nullptr);
 
+    m_bFdCanWrite = true;
     return true;
 }
 
@@ -206,4 +207,6 @@ void TcpSession::Clear()
     }
     m_read_callback = nullptr;
     m_error_callback = nullptr;
+
+    m_bFdCanWrite = false;
 }

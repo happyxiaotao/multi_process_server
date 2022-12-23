@@ -30,7 +30,7 @@ namespace forward
         }
         subscriber->SetPacketComplete(std::bind(&ForwardServer::OnPacketCompleted, this, std::placeholders::_1, std::placeholders::_2));
         subscriber->SetPacketError(std::bind(&ForwardServer::OnPacketError, this, std::placeholders::_1, std::placeholders::_2));
-        m_mapSubscriber[subscriber->GetSessionId()] = subscriber; //当发送订阅请求时，再放入对应的订阅列表
+        m_mapSubscriber[subscriber->GetSessionId()] = subscriber; // 当发送订阅请求时，再放入对应的订阅列表
         Info("ForwardServer::OnNewConnection,m_mapSubscriber.size()={}", m_mapSubscriber.size());
     }
 
@@ -44,7 +44,7 @@ namespace forward
         // auto seq = pkt.m_header->WdPackageSequence;
         // Trace("ForwardServer::Publish, pkt->seq:{}", seq);
 
-        //找到对应的通道进行数据推送
+        // 找到对应的通道进行数据推送
         auto channel_id = device_id;
         const Message message(pkt, device_id);
         Publisher::Publish(channel_id, message);
@@ -121,6 +121,7 @@ namespace forward
     {
         constexpr bool bConnect = false;
         m_service->SendCommandTo808(strDeviceId, bConnect);
+        m_service->NotifyNoSubscriber(strDeviceId);
     }
 
     // 如果订阅列表为空，则向redis发送断开请求

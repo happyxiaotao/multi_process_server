@@ -3,7 +3,7 @@
 
 namespace forward
 {
-    Subscriber::Subscriber() : m_bFdCanWrite(false), m_uLastIpcPktSeqId(ipc::INVALID_PKT_SEQ_ID)
+    Subscriber::Subscriber() : m_uLastIpcPktSeqId(ipc::INVALID_PKT_SEQ_ID)
     {
     }
     Subscriber::~Subscriber()
@@ -13,7 +13,6 @@ namespace forward
     {
         if (TcpSession::Init(eventloop, fd, remote_ip, remote_port))
         {
-            m_bFdCanWrite = true;
             return true;
         }
         return false;
@@ -65,72 +64,61 @@ namespace forward
 
     ssize_t Subscriber::SendMsg(const jt1078::packet_t &jt1078_pkt, device_id_t device_id)
     {
-        ipc::packet_t ipc_pkt;
-        struct iovec iov[4];
-        const int iovcnt = 4;
-        InitIovecByPkt(iov, ipc_pkt, jt1078_pkt, device_id);
-        return SendMsg(iov, iovcnt);
-    }
-    void Subscriber::AddPendingMsg(const Message &message)
-    {
-        const auto &jt1078_pkt = message.GetPkt();
-        auto device_id = message.GetDeviceId();
-        struct iovec iov[4];
-        const int iovcnt = 4;
-        ipc::packet_t ipc_pkt;
-        InitIovecByPkt(iov, ipc_pkt, jt1078_pkt, device_id);
-        AddPendingMsg(iov, iovcnt);
-    }
-    void Subscriber::AddPendingMsg(struct iovec *iov, int iovcnt)
-    {
-        std::string buffer;
-        for (int i = 0; i < iovcnt; i++)
-        {
-            buffer.append((char *)iov[i].iov_base, iov[i].iov_len);
-        }
-        m_pending_buffer_list.emplace_back(buffer);
-    }
-    bool Subscriber::SendPendingMsg() // 发送未发送成功的数据包
-    {
-        while (!m_pending_buffer_list.empty())
-        {
-            const auto &buffer = m_pending_buffer_list.front();
-            struct iovec iov[1];
-            const size_t iovcnt = 1;
-            iov[0].iov_base = (void *)buffer.c_str();
-            iov[0].iov_len = buffer.size();
-            const bool bInPendingList = true;
-            if (SendMsg(iov, iovcnt, bInPendingList) < 0)
-            {
-                break;
-            }
-            m_pending_buffer_list.pop_front();
-        }
-        return !m_pending_buffer_list.empty();
-    }
+        m_send_buffer.clear();
 
-    ssize_t Subscriber::SendMsg(struct iovec *iov, int iovcnt, bool bInPendingList)
-    {
-        int nerrno = 0;
-        int ret = SendBuffer(iov, iovcnt, nerrno);
-        if (ret < 0)
+        ipc::packet_t ipc_pkt;
+        struct iovec iov[4];
+        InitIovecByPkt(iov, ipc_pkt, jt1078_pkt, device_id);
+        for (int i = 0; i < 4; i++)
         {
-            Warn("Subscriber::SendMsg,SendBuffer failed, session_id:{}, errno:{},error:{}", GetSessionId(), nerrno, strerror(nerrno));
-            // 未发送成功，将数据缓存起来
-            if (nerrno == EAGAIN || nerrno == EWOULDBLOCK)
+            m_send_buffer.append((char *)iov[i].iov_base, iov[i].iov_len);
+        }
+
+        if (!EmptyPendingBuffer())
+        {
+            Warn("Subscriber::SendMsg, Handler Pending Msg, pending size:{}", SizePendingBuffer());
+            bool bOk = SendPendingBuffer(); // 发送缓存的数据
+            if (!bOk)                       // 没有发送完
             {
-                if (!bInPendingList) // 不在队列中，则追加
+                if (IsCanWrite()) // socket可写，则将本次将要写入的数据，拷贝到缓存区中
                 {
-                    AddPendingMsg(iov, iovcnt);
+                    PushBackPendingBuffer(std::move(std::string(m_send_buffer))); // 注意 std::move
+                    return m_send_buffer.size();
+                }
+                else // socket不可写
+                {
+                    return -1;
                 }
             }
-            else
+        }
+        // 走到这里，说明是EmptyPendingBuffer
+        int nerrno = 0;
+        int ret = SendBuffer(m_send_buffer.c_str(), m_send_buffer.size(), nerrno);
+        if (ret < 0)
+        {
+            if (nerrno == EAGAIN || nerrno == EWOULDBLOCK)
             {
-                m_bFdCanWrite = false;
+                Warn("Subscriber::SendMsg, SendBuffer return -1,errno=EAGAIN,push pendingbuffrer,session_id:{},device_id:{}", GetSessionId(), device_id);
+                PushBackPendingBuffer(std::move(std::string(m_send_buffer)));
+            }
+            else // 对端不可用
+            {
+                Warn("Subscriber::SendMsg, SendBuffer return -1,errno={},error:{},return false,session_id:{},device_id:{}", nerrno, strerror(nerrno), GetSessionId(), device_id);
+                return -1;
             }
         }
-        return ret;
+        else if (ret < (ssize_t)m_send_buffer.size())
+        {
+            Warn("Subscriber::SendMsg, SendBuffer return {},expect value:{},session_id:{},device_id:{}", ret, m_send_buffer.size(), strerror(nerrno), GetSessionId(), device_id);
+            PushBackPendingBuffer(m_send_buffer.c_str() + ret, m_send_buffer.size() - ret);
+            return ret;
+        }
+        else // ret == nCurNeedWriteSize
+        {
+            return m_send_buffer.size();
+        }
     }
+
     // 注：device_id一定要传引用，不能传值，因为是在外界调用的iov进行发送，此时iov[1]的内容不确实啥。不是期望的效果。
     void Subscriber::InitIovecByPkt(struct iovec *iov, ipc::packet_t &ipc_pkt, const jt1078::packet_t &jt1078_pkt, const device_id_t &device_id)
     {
