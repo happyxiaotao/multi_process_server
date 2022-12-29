@@ -3,7 +3,7 @@
 #include "../core/log/Log.hpp"
 #include "../core/ini_config.h"
 #include "../jt1078/AV_Common_Define.h"
-#include "../jt1078/jt1078_server/Jt1078Util.h"
+#include "../jt1078/Jt1078Util.h"
 
 PcServer::PcServer() : m_listen_port(INVALID_PORT)
 {
@@ -82,7 +82,8 @@ void PcServer::OnNewConnection(evutil_socket_t socket, struct sockaddr *sa)
 void PcServer::OnPacketCompleted(const PcSessionPtr &pc, const ipc::packet_t &packet)
 {
     Trace("PcServer::OnPacketCompleted, pc session_id:{}, packet_type:{}", pc->GetSessionId(), packet.m_uPktType);
-    if (!m_client->IsConnected())
+    // 需要检测jt1078_server是否连接成功
+    if (!m_client || !m_client->IsConnected())
     {
         Error("PcServer::OnPacketCompleted,can not handler pc msg, jt1078 server is not connected,session_id:{},packet_type:{}",
               pc->GetSessionId(), packet.m_uPktType);
@@ -125,6 +126,7 @@ void PcServer::OnClientConnect(const Jt1078ClientPtr &client, bool bOk)
     Trace("PcServer::OnClientConnect, client session_id:{}, bOk:{}", client->GetSessionId(), bOk);
     if (!bOk)
     {
+        m_client.reset();
         m_connect_timer->StartTimer(); // 启动重连机制
         return;
     }
@@ -169,7 +171,7 @@ void PcServer::OnConnectTimer()
 void PcServer::OnHeartbeatTimer()
 {
     // Trace("PcServer::OnHeartbeatTimer");
-    if (m_client->IsConnected())
+    if (m_client && m_client->IsConnected())
     {
         m_client->SendPacket(ipc::IPC_PKT_HEARTBEAT, "", 0);
     }

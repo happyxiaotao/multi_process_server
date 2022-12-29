@@ -21,11 +21,11 @@ void TcpSession::tcp_session_read_cb(evutil_socket_t socket, short events, void 
 TcpSession::TcpSession() : m_remote_port(INVALID_PORT), m_session_id(GenerateSessionId()), m_eventloop(nullptr),
                            m_fd(INVALID_SOCKET), m_read_event(nullptr), m_bFdCanWrite(false)
 {
-    Trace("TcpSession::TcpSession");
+    // Trace("TcpSession::TcpSession");
 }
 TcpSession::~TcpSession()
 {
-    Trace("TcpSession::~TcpSession");
+    // Trace("TcpSession::~TcpSession");
     Clear();
 }
 

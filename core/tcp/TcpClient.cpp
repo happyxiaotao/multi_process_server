@@ -5,11 +5,11 @@
 TcpClient::TcpClient() : m_ev_write(nullptr), m_bConnected(false)
 {
     evutil_timerclear(&m_connect_timeout);
-    Trace("TcpClient::TcpClient");
+    // Trace("TcpClient::TcpClient");
 }
 TcpClient::~TcpClient()
 {
-    Trace("TcpClient::~TcpClient");
+    // Trace("TcpClient::~TcpClient");
     Clear();
 }
 bool TcpClient::AsyncConnect(EventLoop *eventloop, const std::string &ip, u_short port, struct timeval *connect_timeout)
@@ -30,7 +30,7 @@ bool TcpClient::AsyncConnect(EventLoop *eventloop, const std::string &ip, u_shor
     int client_fd = INVALID_SOCKET;
     int addrlen = sizeof(struct sockaddr_in);
     int ret = sock::SocketConnect(&client_fd, (struct sockaddr *)&client_addr, addrlen);
-    if (ret < 0) //发生错误
+    if (ret < 0) // 发生错误
     {
         Error("TcpClient::AsyncConnect connect failed, ip:{},port:{}", ip, port);
         return false;
@@ -73,18 +73,19 @@ void TcpClient::FreeWriteEvent()
 }
 void TcpClient::tcp_session_write_cb(evutil_socket_t socket, short events, void *args)
 {
-    Trace("TcpClient::tcp_session_write_cb, event=0x{:x}", events);
+    // Trace("TcpClient::tcp_session_write_cb, event=0x{:x}", events);
     TcpClient *client = static_cast<TcpClient *>(args);
     if ((events & EV_WRITE) == EV_WRITE)
     {
-        int err;
-        socklen_t len = sizeof(err);
-        getsockopt(socket, SOL_SOCKET, SO_ERROR, &err, &len);
-        if (err)
+        int nerrno;
+        socklen_t len = sizeof(nerrno);
+        getsockopt(socket, SOL_SOCKET, SO_ERROR, &nerrno, &len);
+        if (nerrno)
         {
-            Error("connect return ev_write, but check failed, err:{}", err);
             evutil_closesocket(socket);
-            client->OnConnected(socket, false, strerror(err));
+            const char *error = strerror(nerrno);
+            // Error("TcpClient::tcp_session_write_cb, connect return ev_write, but check failed, nerrno:{},error:{}", nerrno, error);
+            client->OnConnected(socket, false, error);
         }
         else
         {

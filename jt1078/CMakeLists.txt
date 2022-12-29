@@ -54,7 +54,26 @@ add_executable(jt1078_server
     ../jt1078/jt1078_server/CarManager.cpp
     ../jt1078/jt1078_server/CarSession.cpp
     ../jt1078/jt1078_server/Jt1078Decoder.cpp
-    ../jt1078/jt1078_server/Jt1078Util.cpp
+    ../jt1078/Jt1078Util.cpp
     ../jt1078/Jt1078Service.cpp
     main.cpp
 )
+
+# 设置输出目录
+set(JT1078_DIR ${CMAKE_SOURCE_DIR}/bin/jt1078_server)
+
+# 设置执行程序输出目录
+SET(EXECUTABLE_OUTPUT_PATH ${JT1078_DIR})
+
+# 拷贝相关脚本
+file(COPY top_for_jt1078_server.sh DESTINATION ${JT1078_DIR})
+file(COPY start_jt1078_server.sh DESTINATION ${JT1078_DIR})
+
+# 拷贝配置文件
+file(COPY ../conf/jt1078.ini DESTINATION ${JT1078_DIR}/conf)
+
+# # 拷贝Dockerfile相关
+# file(COPY Dockerfile DESTINATION ${JT1078_DIR})
+# file(COPY DockerClear.sh DESTINATION ${JT1078_DIR})
+# file(COPY DockerBuild.sh DESTINATION ${JT1078_DIR})
+# 

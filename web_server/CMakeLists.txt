@@ -1,6 +1,6 @@
 cmake_minimum_required(VERSION 3.1)
 
-project (pc_server)
+project (web_server)
 
 set(CMAKE_CXX_STANDARD 14)
 
@@ -31,46 +31,62 @@ set(LINK_DIR /usr/lib /usr/local/lib ../lib)
 include_directories(${INC_DIR})
 link_directories(${LINK_DIR})
 
-link_libraries(pthread event.a event_pthreads.a spdlog.a)
+link_libraries(pthread event.a event_pthreads.a event_openssl.a spdlog.a ssl crypto
+                -lavcodec -lavutil -lavformat -lswresample -lswscale)
 
-add_executable(pc_server
+add_executable(web_server
     ../core/log/Log.cpp
     ../core/eventloop/EventLoop.cpp
     ../core/socket/Socket.cpp
-    ../core/tcp/Listener.cpp
+    ../core/buffer/Buffer.cpp
     ../core/tcp/TcpSession.cpp
     ../core/tcp/TcpClient.cpp
-    ../core/buffer/Buffer.cpp
-    ../core/time/TimeUtil.cpp
+    ../core/ipc_packet/IpcPktDecoder.cpp
+    ../core/http_server/HttpHandler.cpp
+    ../core/http_server/HttpServer.cpp
     ../core/timer/EventWatcher.cpp
     ../core/timer/TimerEventWatcher.cpp
-    ../core/ipc_packet/IpcPktDecoder.cpp
-    
+
     ../jt1078/Jt1078Util.cpp
-    PcServer.cpp
-    PcSession.cpp
-    PcManager.cpp
-    PcPublisher.cpp
+
     ../jt1078_client/Jt1078Client.cpp
+
+    ./http/HttpSrsOnSessionHandler.cpp
+    ./http/HttpWebOnPlayHandler.cpp
+    ./http/WebServer.cpp
+    ./http/DeviceIdMgr.cpp
+
+    ./rtmp/RtmpThread.cpp
+
+    ./rtmp/RtmpStream/RtmpStream.cpp
+    ./rtmp/RtmpStream/RtmpClient.cpp
+    ./rtmp/RtmpStream/RtmpMgr.cpp
+
+    ./audio/Adpcm.cpp
+    ./audio/CCodec.cpp
+    ./audio/G711.cpp
+    ./audio/g726.cpp
+
     main.cpp
 )
 
 
-
 # 设置输出目录
-set(PC_DIR ${CMAKE_SOURCE_DIR}/bin/pc_server)
+set(WEB_DIR ${CMAKE_SOURCE_DIR}/bin/web_server)
 
 # 设置执行程序输出目录
-SET(EXECUTABLE_OUTPUT_PATH ${PC_DIR})
+SET(EXECUTABLE_OUTPUT_PATH ${WEB_DIR})
 
 # 拷贝相关脚本
-file(COPY top_for_pc_server.sh DESTINATION ${PC_DIR})
-file(COPY start_pc_server.sh DESTINATION ${PC_DIR})
+file(COPY top_for_web_server.sh DESTINATION ${WEB_DIR})
+file(COPY start_web_server.sh DESTINATION ${WEB_DIR})
 
 # 拷贝配置文件
-file(COPY ../conf/pc.ini DESTINATION ${PC_DIR}/conf)
+file(COPY ../conf/web.ini DESTINATION ${WEB_DIR}/conf)
 
-# # 拷贝Dockerfile相关
-# file(COPY Dockerfile DESTINATION ${PC_DIR})
-# file(COPY DockerClear.sh DESTINATION ${PC_DIR})
-# file(COPY DockerBuild.sh DESTINATION ${PC_DIR})
+# 拷贝Dockerfile相关
+file(COPY Dockerfile DESTINATION ${WEB_DIR})
+file(COPY DockerClear.sh DESTINATION ${WEB_DIR})
+file(COPY DockerBuild.sh DESTINATION ${WEB_DIR})
+
+

@@ -100,6 +100,7 @@ namespace forward
             {
                 Warn("Subscriber::SendMsg, SendBuffer return -1,errno=EAGAIN,push pendingbuffrer,session_id:{},device_id:{}", GetSessionId(), device_id);
                 PushBackPendingBuffer(std::move(std::string(m_send_buffer)));
+                return 0;
             }
             else // 对端不可用
             {
@@ -113,10 +114,8 @@ namespace forward
             PushBackPendingBuffer(m_send_buffer.c_str() + ret, m_send_buffer.size() - ret);
             return ret;
         }
-        else // ret == nCurNeedWriteSize
-        {
-            return m_send_buffer.size();
-        }
+        // ret == nCurNeedWriteSize
+        return m_send_buffer.size();
     }
 
     // 注：device_id一定要传引用，不能传值，因为是在外界调用的iov进行发送，此时iov[1]的内容不确实啥。不是期望的效果。
