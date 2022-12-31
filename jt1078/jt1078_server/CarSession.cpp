@@ -68,10 +68,10 @@ void CarSession::ParseBuffer(const Buffer &buffer)
 }
 void CarSession::UpdateDeviceIdIfEmpty(const uint8_t *pSimCardNumber, uint8_t uLogicChannelNumber)
 {
-    if (m_device_id== INVALID_DEVICE_ID|| m_strDeviceId.empty())
+    if (m_device_id == INVALID_DEVICE_ID || m_strDeviceId.empty())
     {
-        m_strDeviceId= GenerateDeviceIdStr(pSimCardNumber, uLogicChannelNumber);
-        m_device_id= GenerateDeviceId(m_strDeviceId);
+        m_strDeviceId = GenerateDeviceIdStr(pSimCardNumber, uLogicChannelNumber);
+        m_device_id = GenerateDeviceId(m_strDeviceId);
         Debug("CarSession::UpdateDeviceIdIfEmpty,session_id:{},device_id:{:014x}", GetSessionId(), m_device_id);
     }
 }

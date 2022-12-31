@@ -23,9 +23,9 @@ int Jt1078Server::Listen(const std::string &ip, u_short port)
     m_listen_port = port;
     return m_listener->Listen(ip, port);
 }
-void Jt1078Server::DisconnectCar(const std::string &strDeviceId)
+
+void Jt1078Server::DisconnectCar(const std::string &strDeviceId, const CarDisconnectCause &cause)
 {
-    CarDisconnectCause cause = CarDisconnectCause::NoSubscriber;
     m_manager.DelCarByDeviceId(GenerateDeviceId(strDeviceId), cause);
 }
 
@@ -50,6 +50,7 @@ void Jt1078Server::OnNewConnection(evutil_socket_t socket, struct sockaddr *sa)
 
 void Jt1078Server::OnPacketError(const CarSessionPtr &car, TcpErrorType error_type)
 {
+    Error("Jt1078Server::OnPacketError, car session_id:{}, device_id:{:014x},error_type:{}", car->GetSessionId(), car->GetDeviceId(), error_type);
     CarDisconnectCause cause = CarDisconnectCause::OtherCause;
     switch (error_type)
     {

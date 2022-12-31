@@ -54,9 +54,9 @@ ssize_t Buffer::GetDataFromFd(int fd, int max_size)
     {
         nread = read(fd, m_recv_buffer, ntoread);
         nerrno = errno;
-    } while (nread == -1 && nerrno == EINTR); //读取中断，需要再次读取
+    } while (nread == -1 && nerrno == EINTR); // 读取中断，需要再次读取
 
-    if (nread <= 0)
+    if (nread <= 0 && (nerrno != EAGAIN && nerrno != EWOULDBLOCK)) // 如果是阻塞的报错，则暂时不打印错误信息
     {
         Error("Buffer::GetDataFromFd, read data from fd:{},return:{},errno:{},errmsg:{}", fd, nread, nerrno, strerror(nerrno));
     }

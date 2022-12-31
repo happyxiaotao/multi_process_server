@@ -9,10 +9,10 @@ Jt1078Client::~Jt1078Client()
 {
 }
 
-int Jt1078Client::SendPacket(ipc::IpcPktType type, const char *data, size_t len)
+int Jt1078Client::SendPacket(uint32_t mask, const char *data, size_t len)
 {
     m_ipc_packet.Clear();
-    m_ipc_packet.m_uPktType = type;
+    m_ipc_packet.m_uPktType = mask;
     m_ipc_packet.m_uDataLength = len;
     m_ipc_packet.m_uPktSeqId = GetNewSendIpcPktSeqId();
     struct iovec iov[2];
@@ -24,7 +24,7 @@ int Jt1078Client::SendPacket(ipc::IpcPktType type, const char *data, size_t len)
     ssize_t ret = SendBuffer(iov, sizeof(iov) / sizeof(iov[0]), nerrno);
     if (ret < 0)
     {
-        Error("Jt1078Client::SendPacket failed, type:{},len:{},nerrno:{},error:{}", type, len, nerrno, strerror(nerrno));
+        Error("Jt1078Client::SendPacket failed, type:0x{:x},len:{},nerrno:{},error:{}", mask, len, nerrno, strerror(nerrno));
     }
     return ret;
 }

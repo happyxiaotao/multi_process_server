@@ -81,12 +81,22 @@ size_t PcPublisher::SizeSubscriber(const device_id_t &device_id)
     return channel->size();
 }
 
-std::set<device_id_t> PcPublisher::GetAllDeviceId()
+std::set<device_id_t> PcPublisher::GetAllDeviceId(bool bFilterEmptySubscriber)
 {
     std::set<device_id_t> result;
     for (auto &iter : m_channels)
     {
-        result.insert(iter.first);
+        if (bFilterEmptySubscriber) // 过滤掉空订阅者通道
+        {
+            if (!iter.second->empty())
+            {
+                result.insert(iter.first);
+            }
+        }
+        else
+        {
+            result.insert(iter.first);
+        }
     }
     return result;
 }

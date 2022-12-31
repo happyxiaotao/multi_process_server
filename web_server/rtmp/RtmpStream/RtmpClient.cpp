@@ -84,7 +84,7 @@ int RtmpClient::ProcessJt1078Packet(const jt1078::packet_t &packet)
 
                 if (!m_bCarHaveAudio) // 设备没有上传音频数据包，需要先填充假数据，避免无音频导致的网页无法播放FLV视频
                 {
-                    Trace("Add Fake Audio Pcm Data,timestamp={}", packet.m_header->Bt8timeStamp);
+                    // Trace("Add Fake Audio Pcm Data,timestamp={}", packet.m_header->Bt8timeStamp);
                     AddFakeAudioPcm(packet);
                 }
             }
@@ -164,7 +164,7 @@ int RtmpClient::TryToInitRtmpStream()
 
         if (m_rtmp_stream.Init(m_rtmp_url) < 0)
         {
-            Error("RtmpClient::TryToInitRtmpStream failed, rtmp_stream init failed, device_id:{:14x},rtmp_url:{}", m_device_id, m_rtmp_url);
+            Error("RtmpClient::TryToInitRtmpStream failed, rtmp_stream init failed, device_id:{:014x},rtmp_url:{}", m_device_id, m_rtmp_url);
             return -2;
         }
         Info("RtmpClient::TryToInitRtmpStream, rmpt_stream init succ, rtmp_url:{}", m_rtmp_url);

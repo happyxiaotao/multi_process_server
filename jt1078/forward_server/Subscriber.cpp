@@ -124,7 +124,7 @@ namespace forward
         ipc_pkt.m_uHeadLength = sizeof(ipc::packet_t);
         ipc_pkt.m_uDataLength = sizeof(device_id_t) + sizeof(jt1078::header_t) + jt1078_pkt.m_header->WdBodyLen;
         ipc_pkt.m_uPktSeqId = GetIpcPktSeqId();
-        ipc_pkt.m_uPktType = ipc::IPC_PKT_JT1078_PACKET; // 注意中间插入了个device_id
+        ipc_pkt.m_uPktType = ipc::IPC_PKT_TYPE_JT1078_PACKET | ipc::IPC_PKT_FROM_JT1078_SERVER; // 注意中间插入了个device_id
         // 从1开始，0被ipc::packet_t占用了
         iov[0].iov_base = (void *)&ipc_pkt;
         iov[0].iov_len = sizeof(ipc::packet_t);
@@ -134,7 +134,7 @@ namespace forward
         iov[2].iov_len = sizeof(jt1078::header_t);
         iov[3].iov_base = jt1078_pkt.m_body;
         iov[3].iov_len = jt1078_pkt.m_header->WdBodyLen;
-        // Trace("session_id:{},device_id:{:14x},head len={},seq={},data len={}", GetSessionId(), device_id, ipc_pkt.m_uHeadLength, ipc_pkt.m_uPktSeqId, ipc_pkt.m_uDataLength);
+        // Trace("session_id:{},device_id:{:014x},head len={},seq={},data len={}", GetSessionId(), device_id, ipc_pkt.m_uHeadLength, ipc_pkt.m_uPktSeqId, ipc_pkt.m_uDataLength);
     }
 
     uint32_t Subscriber::GetIpcPktSeqId()

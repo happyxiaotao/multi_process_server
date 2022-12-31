@@ -27,8 +27,8 @@ public:
     size_t SizeSubscriber(const device_id_t &device_id);
     bool IsEmptySubscriber(const device_id_t &device_id) { return SizeSubscriber(device_id) == 0; }
 
-    // 返回所有订阅的device_id
-    std::set<device_id_t> GetAllDeviceId();
+    // 返回所有订阅的device_id。参数表示是否过滤掉空订阅者的通道，默认不过滤。
+    std::set<device_id_t> GetAllDeviceId(bool bFilterEmptySubscriber = false);
 
 private:
     std::map<device_id_t, ChannelPtr> m_channels;

@@ -31,12 +31,23 @@ private:
     void OnHeartbeatTimer();
 
 private:
+    // 异步连接jt1078_server
     bool AsyncConnectServer();
 
 private:
     // 下面是数据包的处理逻辑
     void ProcessPcPacket_Subscribe(const PcSessionPtr &pc, const ipc::packet_t &packet);
     void ProcessPcPacket_UnSubscribe(const PcSessionPtr &pc, const ipc::packet_t &packet);
+
+private:
+    // 如果存在旧的订阅device_id，则与新订阅device_id比较，不一致，则取消订阅旧的device_id
+    void TryUnsubscriberOldDeviceId(const PcSessionPtr &pc, const std::string &strNewDeviceId);
+    // 发送订阅请求包
+    void SubscribeDeviceId(const PcSessionPtr &pc, const std::string &strDeviceId);
+    // 发送取消订阅包
+    void UnSubscribeDeviceId(const PcSessionPtr &pc);
+    // 释放PCSession及其资源
+    void ReleasePcSessionDeviceId(const PcSessionPtr &pc);
 
 private:
     EventLoop m_eventloop;

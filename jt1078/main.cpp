@@ -38,7 +38,11 @@ bool DoBeforeMainLoop(const std::string &strConfigFile)
     bool bDaemon = g_ini->GetBoolean("core", "daemon", false);
     if (bDaemon)
     {
-        daemon(1, 1);
+        if (daemon(1, 1) < 0)
+        {
+            fprintf(stderr, "daemon(1,1) failed!,error:%s\n", strerror(errno));
+            exit(0);
+        }
     }
 
     // 保存进程id

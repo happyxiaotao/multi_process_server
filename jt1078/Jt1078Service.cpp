@@ -144,5 +144,7 @@ void Jt1078Service::SendCommandTo808(const std::string &strDeviceId, bool bConne
 
 void Jt1078Service::NotifyNoSubscriber(const std::string &strDeviceId)
 {
-    m_jt1078_server->DisconnectCar(strDeviceId);
+    // 没有其他订阅者时，此通道没有必要再维护。断开连接即可
+    CarDisconnectCause cause = CarDisconnectCause::NoSubscriber;
+    m_jt1078_server->DisconnectCar(strDeviceId, cause);
 }

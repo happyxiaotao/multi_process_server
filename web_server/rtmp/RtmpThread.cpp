@@ -37,22 +37,22 @@ void RtmpThread::HandlerTask(const std::shared_ptr<ipc::packet_move_t> &task)
 {
     // Trace("RtmpThread::HandlerTask, packet.seq_id={}", task->m_uPktSeqId);
 
-    switch (task->m_uPktType)
+    switch (task->m_uPktType & ipc::IPC_PKT_TYPE_MASK)
     {
-    // 订阅通道，只有订阅了通道，才会处理下一步的IPC_PKT_JT1078_PACKET数据包
-    case ipc::IPC_PKT_SUBSCRIBE_DEVICD_ID:
+    // 订阅通道，只有订阅了通道，才会处理下一步的IPC_PKT_TYPE_JT1078_PACKET数据包
+    case ipc::IPC_PKT_TYPE_SUBSCRIBE_DEVICE_ID:
     {
         m_rtmp_mgr.CreateRtmpClient(task->m_data, task->m_uDataLength);
         break;
     }
     // 停止订阅。
-    case ipc::IPC_PKT_UNSUBSCRIBE_DEVICD_ID:
+    case ipc::IPC_PKT_TYPE_UNSUBSCRIBE_DEVICE_ID:
     {
         m_rtmp_mgr.ReleaseRtmpClient(task->m_data, task->m_uDataLength);
         break;
     }
     // 处理jt1078音视频数据
-    case ipc::IPC_PKT_JT1078_PACKET:
+    case ipc::IPC_PKT_TYPE_JT1078_PACKET:
     {
         const char *p = task->m_data;
         // 获取
@@ -84,10 +84,12 @@ void RtmpThread::HandlerTask(const std::shared_ptr<ipc::packet_move_t> &task)
 
 std::shared_ptr<ipc::packet_move_t> RtmpThread::CreateTerminateTask()
 {
-    return std::shared_ptr<ipc::packet_move_t>();
+    auto move_packet = std::make_shared<ipc::packet_move_t>();
+    move_packet->m_uPktType = ipc::IPC_PKT_OTHER_THREAD_STOP; // 设置标识为停止线程
+    return move_packet;
 }
 
 bool RtmpThread::IsTerminateTask(const std::shared_ptr<ipc::packet_move_t> &task)
 {
-    return false;
+    return (task->m_uPktType & ipc::IPC_PKT_OTHER_MASK) == ipc::IPC_PKT_OTHER_THREAD_STOP;
 }

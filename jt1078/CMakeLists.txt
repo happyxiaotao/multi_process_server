@@ -7,7 +7,8 @@ set(CMAKE_CXX_STANDARD 14)
 # 是否使用asan进行内存泄漏检测
 #option(WITH_ASAN "Enable AddressSanitizer (ASan)" ON)
 option(WITH_ASAN "Enable AddressSanitizer (ASan)" OFF)
-option(WITH_DEBUG "Enable DEBUG" ON)
+#option(WITH_DEBUG "Enable DEBUG" ON)
+option(WITH_DEBUG "Enable DEBUG" OFF)
 if(WITH_ASAN)
 	message("WITH_ASAN")
 	add_definitions("-fsanitize=address -fno-omit-frame-pointer")
@@ -68,6 +69,7 @@ SET(EXECUTABLE_OUTPUT_PATH ${JT1078_DIR})
 # 拷贝相关脚本
 file(COPY top_for_jt1078_server.sh DESTINATION ${JT1078_DIR})
 file(COPY start_jt1078_server.sh DESTINATION ${JT1078_DIR})
+file(COPY stop_jt1078_server.sh DESTINATION ${JT1078_DIR})
 
 # 拷贝配置文件
 file(COPY ../conf/jt1078.ini DESTINATION ${JT1078_DIR}/conf)

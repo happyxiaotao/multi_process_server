@@ -47,7 +47,7 @@ OF OR IN CONNECTION WITH THE USE OR PERFORMANCE OF THIS SOFTWARE.
 #define signed
 #endif
 
-//#define ADPCM_ENDIAN_SWAP
+// #define ADPCM_ENDIAN_SWAP
 
 #ifdef ADPCM_ENDIAN_SWAP
 uint16_t swap_uint16(uint16_t val)
@@ -222,7 +222,9 @@ void adpcm_decoder(char *indata, short *outdata, int len, adpcm_state *state)
 	int index;		  /* Current step change index */
 	int inputbuffer;  /* place to keep next 4-bit value */
 	int bufferstep;	  /* toggle between inputbuffer/input */
+#ifdef ADPCM_ENDIAN_SWAP
 	short tmp;
+#endif
 	outp = outdata;
 	inp = (signed char *)indata;
 

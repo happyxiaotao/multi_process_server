@@ -18,7 +18,8 @@ public:
     inline const std::string &GetListenIp() const { return m_listen_ip; }
     inline u_short GetListenPort() const { return m_listen_port; }
 
-    void DisconnectCar(const std::string &strDeviceId);
+    // 断开与汽车的连接
+    void DisconnectCar(const std::string &strDeviceId, const CarDisconnectCause &cause);
 
 private:
     void OnNewConnection(evutil_socket_t socket, struct sockaddr *sa);

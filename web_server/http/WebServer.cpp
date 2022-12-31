@@ -50,12 +50,12 @@ void WebServer::NotifyStart(const std::string &strDeviceId)
     // 通知jt1078_server
     if (m_jt1078_client && m_jt1078_client->IsConnected())
     {
-        m_jt1078_client->SendPacket(ipc::IPC_PKT_SUBSCRIBE_DEVICD_ID, strDeviceId.c_str(), strDeviceId.size());
+        m_jt1078_client->SendPacket(ipc::IPC_PKT_TYPE_SUBSCRIBE_DEVICE_ID | ipc::IPC_PKT_FROM_WEB_SERVER, strDeviceId.c_str(), strDeviceId.size());
     }
 
     // 通知子线程，创建对应的RTMP流
     ipc::packet_move_t move_packet;
-    InitIpcMovePacket(move_packet, ipc::IPC_PKT_SUBSCRIBE_DEVICD_ID, strDeviceId.c_str(), strDeviceId.size());
+    InitIpcMovePacket(move_packet, ipc::IPC_PKT_TYPE_SUBSCRIBE_DEVICE_ID | ipc::IPC_PKT_FROM_WEB_SERVER, strDeviceId.c_str(), strDeviceId.size());
     m_rtmp_thread.PostPacket(std::move(move_packet));
 }
 
@@ -74,12 +74,12 @@ void WebServer::NotifyStop(const std::string strDeviceId)
     // 通知jt1078_server
     if (m_jt1078_client && m_jt1078_client->IsConnected())
     {
-        m_jt1078_client->SendPacket(ipc::IPC_PKT_UNSUBSCRIBE_DEVICD_ID, strDeviceId.c_str(), strDeviceId.size());
+        m_jt1078_client->SendPacket(ipc::IPC_PKT_TYPE_UNSUBSCRIBE_DEVICE_ID | ipc::IPC_PKT_FROM_WEB_SERVER, strDeviceId.c_str(), strDeviceId.size());
     }
 
     // 通知子线程，释放此通道的RTMP流
     ipc::packet_move_t move_packet;
-    InitIpcMovePacket(move_packet, ipc::IPC_PKT_UNSUBSCRIBE_DEVICD_ID, strDeviceId.c_str(), strDeviceId.size());
+    InitIpcMovePacket(move_packet, ipc::IPC_PKT_TYPE_UNSUBSCRIBE_DEVICE_ID | ipc::IPC_PKT_FROM_WEB_SERVER, strDeviceId.c_str(), strDeviceId.size());
     m_rtmp_thread.PostPacket(std::move(move_packet));
 }
 
@@ -127,14 +127,20 @@ void WebServer::OnClientConnect(const Jt1078ClientPtr &client, bool bOk)
 
 void WebServer::OnClientMessage(const Jt1078ClientPtr &client, const ipc::packet_t &packet)
 {
-    //  Trace("WebServer::OnClientMessage, sesion_id:{}, packet type:{},ipc_pkt.m_uHeadLength={},ipc_pkt.m_uPktSeqId={},ipc_pkt.m_uDataLength={}",
+    //  Trace("WebServer::OnClientMessage, sesion_id:{}, packet type:0x{:x},ipc_pkt.m_uHeadLength={},ipc_pkt.m_uPktSeqId={},ipc_pkt.m_uDataLength={}",
     //        client->GetSessionId(), packet.m_uPktType, packet.m_uHeadLength, packet.m_uPktSeqId, packet.m_uDataLength);
 
     // 接收到消息
-    if (packet.m_uPktType == ipc::IPC_PKT_JT1078_PACKET)
+    switch (packet.m_uPktType & ipc::IPC_PKT_TYPE_MASK)
+    {
+    case ipc::IPC_PKT_TYPE_JT1078_PACKET:
     {
         // 收到jt1078数据包后，添加到线程中
         m_rtmp_thread.PostPacket(packet);
+        break;
+    }
+    default:
+        break;
     }
 }
 
@@ -160,7 +166,7 @@ void WebServer::OnHeartbeatTimer()
     // Trace("PcServer::OnHeartbeatTimer");
     if (m_jt1078_client && m_jt1078_client->IsConnected())
     {
-        m_jt1078_client->SendPacket(ipc::IPC_PKT_HEARTBEAT, "", 0);
+        m_jt1078_client->SendPacket(ipc::IPC_PKT_TYPE_HEARTBEAT | ipc::IPC_PKT_FROM_WEB_SERVER, "", 0);
     }
     m_heartbeat_timer->StartTimer();
 }

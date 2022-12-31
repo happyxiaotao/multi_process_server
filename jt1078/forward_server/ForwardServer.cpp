@@ -31,7 +31,7 @@ namespace forward
         subscriber->SetPacketComplete(std::bind(&ForwardServer::OnPacketCompleted, this, std::placeholders::_1, std::placeholders::_2));
         subscriber->SetPacketError(std::bind(&ForwardServer::OnPacketError, this, std::placeholders::_1, std::placeholders::_2));
         m_mapSubscriber[subscriber->GetSessionId()] = subscriber; // 当发送订阅请求时，再放入对应的订阅列表
-        Info("ForwardServer::OnNewConnection,m_mapSubscriber.size()={}", m_mapSubscriber.size());
+        Info("ForwardServer::OnNewConnection, add new subscriber,session_id:{},m_mapSubscriber.size()={}", subscriber->GetSessionId(), m_mapSubscriber.size());
     }
 
     bool ForwardServer::Listen(const std::string &ip, u_short port)
@@ -54,9 +54,8 @@ namespace forward
     // 一个订阅者，可以订阅多个通道
     void ForwardServer::OnPacketError(const SubscriberPtr &subscriber, TcpErrorType error_type)
     {
-        Error("ForwardServer::OnPacketError, subscriber session_id:{},error_type:{}", subscriber->GetSessionId(), error_type);
+        Error("ForwardServer::OnPacketError, subscriber session_id:{},error_type:{}, current subscriber.size()={}", subscriber->GetSessionId(), error_type, m_mapSubscriber.size());
         m_mapSubscriber.erase(subscriber->GetSessionId());
-        Info("ForwardServer::OnPacketError,m_mapSubscriber.size()={}", m_mapSubscriber.size());
         // 从所有的通道中删除此订阅者
         DelSubscriber(subscriber);
 
@@ -65,31 +64,54 @@ namespace forward
     }
     void ForwardServer::OnPacketCompleted(const SubscriberPtr &subscriber, const ipc::packet_t &packet)
     {
-        switch (packet.m_uPktType)
+        switch (packet.m_uPktType & ipc::IPC_PKT_TYPE_MASK)
         {
-        case ipc::IPC_PKT_HEARTBEAT:
+        case ipc::IPC_PKT_TYPE_HEARTBEAT:
             break;
-        case ipc::IPC_PKT_SUBSCRIBE_DEVICD_ID:
+        case ipc::IPC_PKT_TYPE_SUBSCRIBE_DEVICE_ID:
             ProcessPacket_Subscriber(subscriber, packet);
             break;
-        case ipc::IPC_PKT_UNSUBSCRIBE_DEVICD_ID:
+        case ipc::IPC_PKT_TYPE_UNSUBSCRIBE_DEVICE_ID:
             ProcessPacket_UnSubscriber(subscriber, packet);
             break;
         default:
             break;
         }
     }
+    static bool IS_FROM_WEB_SERVER(const ipc::packet_t &packet)
+    {
+        return (packet.m_uPktType & ipc::IPC_PKT_FROM_MASK) == ipc::IPC_PKT_FROM_WEB_SERVER;
+    }
     void ForwardServer::ProcessPacket_Subscriber(const SubscriberPtr &subscriber, const ipc::packet_t &packet)
     {
+        const char *pFromInfo = "";
+        switch (packet.m_uPktType & ipc::IPC_PKT_FROM_MASK)
+        {
+        case ipc::IPC_PKT_FROM_PC_SERVER:
+            pFromInfo = "pc_server";
+            break;
+        case ipc::IPC_PKT_FROM_WEB_SERVER:
+            pFromInfo = "web_server";
+            break;
+        default:
+            break;
+        }
+
         device_id_t device_id = GenerateDeviceIdByBuffer(packet.m_data);
-        Info("ForwardServer::OnPacketCompleted,subscriber session_id:{},device_id:{:014x}", subscriber->GetSessionId(), device_id);
+        Info("ForwardServer::ProcessPacket_Subscriber,subscriber session_id:{},device_id:{:014x},from:{}", subscriber->GetSessionId(), device_id, pFromInfo);
         channel_id_t channel_id = device_id; // device_id和channel_id一样。即每个终端都是一个通道
         // 通道之前不存在
         if (!Exists(channel_id))
         {
-            Info("ForwardServer::ProcessRequest_Subscriber,Create Channel,channel_id:{:x}", channel_id);
+            Info("ForwardServer::ProcessPacket_Subscriber,Create Channel,channel_id:{:x}", channel_id);
             CreateChannel(channel_id);
-            NotifyOpenCarTerminal(device_id);
+
+            // 如果是web_server发送的订阅请求，则不需要向redis发送通知。
+            // 因为目前网页端在播放视频时，张总那边服务器会自动发送请求。不需要jt1078_server再发送一次，否则会出现异常情况
+            if (!IS_FROM_WEB_SERVER(packet))
+            {
+                NotifyOpenCarTerminal(device_id);
+            }
         }
         AddSubscriber(channel_id, subscriber);
     }
@@ -129,12 +151,13 @@ namespace forward
     {
         for (auto iter = m_mapChannel.begin(); iter != m_mapChannel.end();)
         {
-            auto &channel = iter->second;
-            if (channel->Empty())
+            if (iter->second->Empty())
             {
-                device_id_t device_id = channel->GetChannelId(); // device_id和channel_id相同
-                Trace("ForwardServer::ReleaseChannelIfEmptySubscriber, device_id={:014x}", device_id);
+                channel_id_t channel_id = iter->second->GetChannelId();
+                Trace("ForwardServer::ReleaseChannelIfEmptySubscriber, channel_id={:014x}", channel_id);
+                device_id_t device_id = channel_id; // device_id和channel_id相同
                 NotifyCloseCarTerminal(device_id);
+                Trace("channel_id:{:014x},use_count={}", channel_id, iter->second.use_count());
                 iter = m_mapChannel.erase(iter);
             }
             else

@@ -20,7 +20,7 @@ public:
     void SetHandlerOnError(FunctorOnError handler) { m_functor_error = handler; }
 
 public:
-    int SendPacket(ipc::IpcPktType type, const char *data, size_t len);
+    int SendPacket(uint32_t mask, const char *data, size_t len);
     inline uint32_t GetLastReceiveIpcPktSeqId() { return m_uLastReceiveIpcPktSeqId; }
 
 private:
