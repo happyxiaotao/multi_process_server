@@ -12,7 +12,7 @@
 class WebServer : public HttpServer
 {
 public:
-    WebServer();
+    WebServer(bool is_realtime_server);
     virtual ~WebServer() {}
 
 public:
@@ -24,6 +24,8 @@ public:
     void NotifyStart(const std::string &strDeviceId);
     // 外界调用，通知停止此通道
     void NotifyStop(const std::string strDeviceId);
+
+    bool IsRealtimeServer() { return m_is_realtime_server; }
 
 private:
     // 维护jt1078客户端的相关处理逻辑
@@ -52,6 +54,8 @@ private:
     DeviceIdMgr m_device_id_mgr;
 
     RtmpThread m_rtmp_thread; // RTMP流处理线程。主线程添加数据，子线程处理数据
+
+    bool m_is_realtime_server; // 是否是实时服务
 };
 
 #endif // WEB_SERVER_H

@@ -9,7 +9,7 @@
 class RtmpClient
 {
 public:
-    RtmpClient(device_id_t device_id);
+    RtmpClient(device_id_t device_id, const std::string &rtmp_url_prefix);
     ~RtmpClient();
 
 public:
@@ -23,11 +23,9 @@ private:
     int AddFakeAudioPcm(const jt1078::packet_t &packet);
 
 private:
-    static std::string s_rtmp_url_prefix;
-
-private:
-    device_id_t m_device_id; // device_id
-    std::string m_rtmp_url;  // rtmp地址前缀
+    device_id_t m_device_id;       // device_id
+    std::string m_rtmp_url_prefix; // rtmp地址前缀
+    std::string m_rtmp_url;
 
     CRtmpStream m_rtmp_stream; // rtmp流
 

@@ -8,7 +8,7 @@
 class RtmpThread : public WorkThread<ipc::packet_move_t>
 {
 public:
-    RtmpThread();
+    RtmpThread(bool need_push_realtime_data);
     virtual ~RtmpThread() override;
 
 public:
@@ -26,6 +26,8 @@ protected:
 private:
     RtmpMgr m_rtmp_mgr;
     jt1078::packet_t *m_tmp_packet; // 临时的packet_t
+    bool m_need_push_realtime_data; // 是否是为了处理实时视频
+    std::string m_rtmp_url_prefix;  // url前缀
 };
 
 #endif // RTMP_THREAD_H

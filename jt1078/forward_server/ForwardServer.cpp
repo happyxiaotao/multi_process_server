@@ -7,7 +7,8 @@
 
 namespace forward
 {
-    ForwardServer::ForwardServer(EventLoop *eventloop, Jt1078Service *service) : m_eventloop(eventloop), m_service(service)
+    ForwardServer::ForwardServer(EventLoop *eventloop, Jt1078Service *service, bool is_realtime)
+        : m_eventloop(eventloop), m_service(service), m_is_realtime(is_realtime)
     {
         m_listener = std::make_shared<Listener>(m_eventloop);
         m_listener->SetConnectionCallBack(std::bind(&ForwardServer::OnNewConnection, this, std::placeholders::_1, std::placeholders::_2));
@@ -20,23 +21,23 @@ namespace forward
         std::string ip;
         u_short port;
         sock::GetIpPortFromSockaddr(*(struct sockaddr_in *)(sa), ip, port);
-        Info("ForwardServer::OnNewConnection, socket={},ip={},port={}", socket, ip, port);
+        Info("ForwardServer::OnNewConnection, is_realtime:{},socket={},ip={},port={}", m_is_realtime, socket, ip, port);
 
         auto subscriber = std::make_shared<Subscriber>();
         if (!subscriber->Init(m_eventloop, socket, ip, port))
         {
-            Error("ForwardServer::OnNewConnection failed, subscriber init failed, remote_ip:{},remote_port:{},fd:{}", ip, port, socket);
+            Error("ForwardServer::OnNewConnection failed, subscriber init failed, remote_ip:{},remote_port:{},fd:{},is_realtime_server:{}", ip, port, socket, m_is_realtime);
             return;
         }
         subscriber->SetPacketComplete(std::bind(&ForwardServer::OnPacketCompleted, this, std::placeholders::_1, std::placeholders::_2));
         subscriber->SetPacketError(std::bind(&ForwardServer::OnPacketError, this, std::placeholders::_1, std::placeholders::_2));
         m_mapSubscriber[subscriber->GetSessionId()] = subscriber; // 当发送订阅请求时，再放入对应的订阅列表
-        Info("ForwardServer::OnNewConnection, add new subscriber,session_id:{},m_mapSubscriber.size()={}", subscriber->GetSessionId(), m_mapSubscriber.size());
+        Info("ForwardServer::OnNewConnection, add new subscriber,session_id:{},m_mapSubscriber.size()={},is_realtime:{}", subscriber->GetSessionId(), m_mapSubscriber.size(), m_is_realtime);
     }
 
     bool ForwardServer::Listen(const std::string &ip, u_short port)
     {
-        Info("ForwardServer::Listen,ip={},port={}", ip, port);
+        Info("ForwardServer::Listen,ip={},port={},is_realtime_server:{}", ip, port, m_is_realtime);
         return m_listener->Listen(ip, port);
     }
     void ForwardServer::Publish(device_id_t device_id, const jt1078::packet_t &pkt)
@@ -54,7 +55,7 @@ namespace forward
     // 一个订阅者，可以订阅多个通道
     void ForwardServer::OnPacketError(const SubscriberPtr &subscriber, TcpErrorType error_type)
     {
-        Error("ForwardServer::OnPacketError, subscriber session_id:{},error_type:{}, current subscriber.size()={}", subscriber->GetSessionId(), error_type, m_mapSubscriber.size());
+        Error("ForwardServer::OnPacketError, subscriber session_id:{},error_type:{}, current subscriber.size()={}, is_realtime:{}", subscriber->GetSessionId(), error_type, m_mapSubscriber.size(), m_is_realtime);
         m_mapSubscriber.erase(subscriber->GetSessionId());
         // 从所有的通道中删除此订阅者
         DelSubscriber(subscriber);
@@ -98,12 +99,12 @@ namespace forward
         }
 
         device_id_t device_id = GenerateDeviceIdByBuffer(packet.m_data);
-        Info("ForwardServer::ProcessPacket_Subscriber,subscriber session_id:{},device_id:{:014x},from:{}", subscriber->GetSessionId(), device_id, pFromInfo);
+        Info("ForwardServer::ProcessPacket_Subscriber,is_realtime_server:{},subscriber session_id:{},device_id:{:014x},from:{}", m_is_realtime, subscriber->GetSessionId(), device_id, pFromInfo);
         channel_id_t channel_id = device_id; // device_id和channel_id一样。即每个终端都是一个通道
         // 通道之前不存在
         if (!Exists(channel_id))
         {
-            Info("ForwardServer::ProcessPacket_Subscriber,Create Channel,channel_id:{:x}", channel_id);
+            Info("ForwardServer::ProcessPacket_Subscriber,is_realtime_server:{},Create Channel,channel_id:{:x}", m_is_realtime, channel_id);
             CreateChannel(channel_id);
 
             // 如果是web_server发送的订阅请求，则不需要向redis发送通知。
@@ -119,7 +120,7 @@ namespace forward
     void ForwardServer::ProcessPacket_UnSubscriber(const SubscriberPtr &subscriber, const ipc::packet_t &packet)
     {
         device_id_t device_id = GenerateDeviceIdByBuffer(packet.m_data);
-        Info("ForwardServer::ProcessPacket_UnSubscriber,subscriber session_id:{},device_id:{:014x}", subscriber->GetSessionId(), device_id);
+        Info("ForwardServer::ProcessPacket_UnSubscriber,is_realtime_server:{},subscriber session_id:{},device_id:{:014x}", m_is_realtime, subscriber->GetSessionId(), device_id);
         channel_id_t channel_id = device_id;
         DelSubscriber(channel_id, subscriber);
         ReleaseChannelIfEmptySubscriber();
@@ -132,7 +133,7 @@ namespace forward
     void ForwardServer::NotifyOpenCarTerminal(const std::string &strDeviceId)
     {
         constexpr bool bConnect = true;
-        m_service->SendCommandTo808(strDeviceId, bConnect);
+        m_service->SendCommandTo808(strDeviceId, bConnect, m_is_realtime);
     }
 
     void ForwardServer::NotifyCloseCarTerminal(device_id_t device_id)
@@ -142,8 +143,8 @@ namespace forward
     void ForwardServer::NotifyCloseCarTerminal(const std::string &strDeviceId)
     {
         constexpr bool bConnect = false;
-        m_service->SendCommandTo808(strDeviceId, bConnect);
-        m_service->NotifyNoSubscriber(strDeviceId);
+        m_service->SendCommandTo808(strDeviceId, bConnect, m_is_realtime);
+        m_service->NotifyNoSubscriber(strDeviceId, m_is_realtime);
     }
 
     // 如果订阅列表为空，则向redis发送断开请求
@@ -154,10 +155,9 @@ namespace forward
             if (iter->second->Empty())
             {
                 channel_id_t channel_id = iter->second->GetChannelId();
-                Trace("ForwardServer::ReleaseChannelIfEmptySubscriber, channel_id={:014x}", channel_id);
+                Trace("ForwardServer::ReleaseChannelIfEmptySubscriber, channel_id={:014x},is_realtime:{}", channel_id, m_is_realtime);
                 device_id_t device_id = channel_id; // device_id和channel_id相同
                 NotifyCloseCarTerminal(device_id);
-                Trace("channel_id:{:014x},use_count={}", channel_id, iter->second.use_count());
                 iter = m_mapChannel.erase(iter);
             }
             else

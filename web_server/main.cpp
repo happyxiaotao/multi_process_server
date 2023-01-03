@@ -120,14 +120,24 @@ int main(int argc, char **argv)
         exit(0);
     }
 
-    WebServer server;
+    // 启动两个服务，一个处理实时视频，一个处理历史视频
+    WebServer realtime_server(true);
     std::string ip = g_ini->Get("web", "ip", "");
-    u_short port = g_ini->GetInteger("web", "port", 0);
-    if (!server.Init(&eventloop, ip, port))
+    u_short realtime_port = g_ini->GetInteger("web", "realtime_port", -1);
+    if (!realtime_server.Init(&eventloop, ip, realtime_port))
     {
-        Error("srs server init failed!");
+        Error("web_realtime_server init failed!");
         exit(0);
     }
+
+    WebServer history_server(false);
+    u_short history_port = g_ini->GetInteger("web", "history_port", -1);
+    if (!history_server.Init(&eventloop, ip, history_port))
+    {
+        Error("web_history_server init failed!");
+        exit(0);
+    }
+
     eventloop.Loop();
 
     return 0;

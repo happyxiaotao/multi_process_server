@@ -7,7 +7,7 @@ class Jt1078Service;
 class Jt1078Server
 {
 public:
-    Jt1078Server(EventLoop *eventloop, Jt1078Service *service);
+    Jt1078Server(EventLoop *eventloop, Jt1078Service *service, bool is_realtime);
     ~Jt1078Server();
 
 public:
@@ -35,6 +35,7 @@ private:
     ListenerPtr m_listener; // 接收jt1078数据包
     CarManager m_manager;
     Jt1078Service *m_service;
+    bool m_is_realtime; // 是否是实时视频服务器
 };
 
 #endif // JT1078_SERVER_H

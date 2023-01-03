@@ -59,16 +59,19 @@ WebServer *HttpSrsOnSessionHandler::GetHttpServer()
     return dynamic_cast<WebServer *>(HttpHandler::GetHttpServer());
 }
 
-bool HttpSrsOnSessionHandler::GetActionAndStream(const nlohmann::json &j, std::string &strAction, std::string &strStream, std::string &strClientId)
+bool HttpSrsOnSessionHandler::GetActionAndStream(const nlohmann::json &j, std::string &strAction, std::string &strStream, std::string &strClientId, std::string &strApp)
 {
     // 存在不同SRS版本，回调的client_id字段类型不一样的情况。SRS3中是number，SRS4中是字符串
     strAction.clear();
     strStream.clear();
     strClientId.clear();
+    strApp.clear();
     try
     {
         strAction = j.at("action");
         strStream = j.at("stream");
+        strApp = j.at("app");
+
         // 针对SRS3中为number，SRS4中为string的情况，进行特殊处理
         auto &json_client_id = j["client_id"];
         if (json_client_id.is_number())
@@ -89,7 +92,7 @@ bool HttpSrsOnSessionHandler::GetActionAndStream(const nlohmann::json &j, std::s
     // catch (const nlohmann::json::parse_error &e) // 使用nlohmann::json::parse_error有时候捕获不到一些异常。使用std::exception获取就可以捕获异常
     catch (const std::exception &e)
     {
-        Warn("HttpSrsOnSessionHandler::GetActionAndStream, get json data 'action' or'stream' failed, error:{}", e.what());
+        Warn("HttpSrsOnSessionHandler::GetActionAndStream, get expect item failed, error:{}", e.what());
         return false;
     }
     return true;
@@ -97,16 +100,21 @@ bool HttpSrsOnSessionHandler::GetActionAndStream(const nlohmann::json &j, std::s
 
 void HttpSrsOnSessionHandler::HandlerJsonData(struct evhttp_request *request, const nlohmann::json &j, const std::string &strJsonData)
 {
+    // Trace("HttpSrsOnSessionHandler::HandlerJsonData, json:{}", strJsonData);
+
     std::string strAction;
     std::string strStream;
     std::string strClientId;
-    if (!GetActionAndStream(j, strAction, strStream, strClientId))
+    std::string strApp; // 实时视频：app="live", 历史视频：app="replay"
+    if (!GetActionAndStream(j, strAction, strStream, strClientId, strApp))
     {
         Warn("HttpSrsOnSessionHandler::HandlerJsonData, GetActionAndStream failed!,json data:{}", strJsonData);
         SendReply_BadRequest(request);
         return;
     }
-    if (strStream.empty() || (strAction != "on_stop" && strAction != "on_play"))
+    if (strStream.empty() ||
+        (strAction != "on_stop" && strAction != "on_play") ||
+        strApp.empty())
     {
         Warn("HttpSrsOnSessionHandler::HandlerJsonData, get invalid session callback json data:{}", strJsonData);
         SendReply_BadRequest(request);
@@ -121,14 +129,22 @@ void HttpSrsOnSessionHandler::HandlerJsonData(struct evhttp_request *request, co
         return;
     }
 
+    // 判断是实时视频SRS回调，还是历史视频SRS回调，并获取相应的sessionStat
+    if (strApp != "live" && strApp != "replay")
+    {
+        Warn("HttpSrsOnSessionHandler::HandlerJsonData, check app value failed, not 'live' or 'replay', json data:{}", strJsonData);
+        ReturnSrsError(request);
+        return;
+    }
+
     bool b = true;
     if (strAction == "on_stop")
     {
-        b = SessionStop(request, strStream, strClientId);
+        b = SessionStop(request, strStream, strClientId, strApp);
     }
     else if (strAction == "on_play") // on_play
     {
-        b = SessionPlay(request, strStream, strClientId);
+        b = SessionPlay(request, strStream, strClientId, strApp);
     }
     // 处理成功
     if (b)
@@ -141,9 +157,10 @@ void HttpSrsOnSessionHandler::HandlerJsonData(struct evhttp_request *request, co
     }
 }
 
-bool HttpSrsOnSessionHandler::SessionStop(evhttp_request *request, const std::string &strStream, const std::string &strClientId)
+bool HttpSrsOnSessionHandler::SessionStop(evhttp_request *request, const std::string &strStream, const std::string &strClientId, const std::string &strApp)
 {
-    Info("HttpSrsOnSessionHandler,on_stop,stream={},clientid={}", strStream, strClientId);
+    Info("HttpSrsOnSessionHandler,on_stop,stream={},clientid={},app={}", strStream, strClientId, strApp);
+
     // 通知web_server，断开某个会话
     m_sessionStat.DelClientId(strStream, strClientId);
     if (m_sessionStat.EmptyClientId(strStream)) // 当没有浏览器在观看此通道后，通知关闭此通道
@@ -156,9 +173,9 @@ bool HttpSrsOnSessionHandler::SessionStop(evhttp_request *request, const std::st
     return true;
 }
 
-bool HttpSrsOnSessionHandler::SessionPlay(evhttp_request *request, const std::string &strStream, const std::string &strClientId)
+bool HttpSrsOnSessionHandler::SessionPlay(evhttp_request *request, const std::string &strStream, const std::string &strClientId, const std::string &strApp)
 {
-    Info("HttpSrsOnSessionHandler,on_play,stream={},clientid={}", strStream, strClientId);
+    Info("HttpSrsOnSessionHandler,on_play,stream={},clientid={},app={}", strStream, strClientId, strApp);
 
     // 如果没有其他浏览器观看此视频，表示第一次观看，需要通道web_server进行订阅
     if (m_sessionStat.EmptyClientId(strStream))

@@ -3,19 +3,11 @@
 #include "../../../core/log/Log.hpp"
 #include "../../../core/ini_config.h"
 
-std::string RtmpClient::s_rtmp_url_prefix;
-
-RtmpClient::RtmpClient(device_id_t device_id)
-    : m_device_id(device_id),
+RtmpClient::RtmpClient(device_id_t device_id, const std::string &rtmp_url_prefix)
+    : m_device_id(device_id), m_rtmp_url_prefix(rtmp_url_prefix),
       m_bCarHaveAudio(false), m_uStartVideoTime(0), m_uLastVideoTime(0), m_pFakeAudioBuffer(nullptr), m_uMaxFakeAudioBufferLen(2048), m_uSendAudioPktCount(0)
-
 {
-    // RtmpThread的构造函数在主线程中调用，并创建。除此之外只有子线程会调用s_rtmp_url_prefix，所以不会存在多线程数据同步问题
-    if (s_rtmp_url_prefix.empty())
-    {
-        s_rtmp_url_prefix = g_ini->Get("rtmp", "url_prefix", "");
-    }
-
+    // RtmpThread的构造函数在主线程中调用，并创建。除此之外只有子线程会调用m_rtmp_url_prefix，所以不会存在多线程数据同步问题
     m_pFakeAudioBuffer = new char[m_uMaxFakeAudioBufferLen];
     memset(m_pFakeAudioBuffer, '\0', m_uMaxFakeAudioBufferLen);
 }
@@ -150,7 +142,7 @@ int RtmpClient::ProcessJt1078Packet(const jt1078::packet_t &packet)
 
 int RtmpClient::TryToInitRtmpStream()
 {
-    if (s_rtmp_url_prefix.empty())
+    if (m_rtmp_url_prefix.empty())
     {
         Error("RtmpThread::TryToInitRtmpStream failed, s_rtmp_url_prefix is empty");
         return -1;
@@ -160,7 +152,7 @@ int RtmpClient::TryToInitRtmpStream()
     if (!m_rtmp_stream.IsInit())
     {
         std::string strDeviceId = GenerateDeviceIdStrByDeviceId(m_device_id);
-        m_rtmp_url = s_rtmp_url_prefix + "/" + strDeviceId;
+        m_rtmp_url = m_rtmp_url_prefix + "/" + strDeviceId;
 
         if (m_rtmp_stream.Init(m_rtmp_url) < 0)
         {

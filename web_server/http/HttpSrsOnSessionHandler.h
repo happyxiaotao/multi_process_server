@@ -51,12 +51,12 @@ protected:
 private:
     WebServer *GetHttpServer();
 
-    bool GetActionAndStream(const nlohmann::json &j, std::string &strAction, std::string &strStream, std::string &strClientId);
+    bool GetActionAndStream(const nlohmann::json &j, std::string &strAction, std::string &strStream, std::string &strClientId, std::string &strApp);
 
     void HandlerJsonData(struct evhttp_request *request, const nlohmann::json &j, const std::string &strJsonData);
 
-    bool SessionStop(struct evhttp_request *request, const std::string &strStream, const std::string &strClientId);
-    bool SessionPlay(struct evhttp_request *request, const std::string &strStream, const std::string &strClientId);
+    bool SessionStop(struct evhttp_request *request, const std::string &strStream, const std::string &strClientId, const std::string &strApp);
+    bool SessionPlay(struct evhttp_request *request, const std::string &strStream, const std::string &strClientId, const std::string &strApp);
 
     void ReturnSrsOK(struct evhttp_request *request);
     void ReturnSrsError(struct evhttp_request *request);

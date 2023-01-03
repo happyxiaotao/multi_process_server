@@ -1,5 +1,5 @@
 #include "RtmpMgr.h"
-#include "../../../core/log/Log.hpp"
+// #include "../../../core/log/Log.hpp"
 #include "RtmpMgr.h"
 #include "../../../jt1078/Jt1078Util.h"
 
@@ -22,27 +22,25 @@ std::shared_ptr<RtmpClient> RtmpMgr::GetRtmpClient(device_id_t device_id)
     return client;
 }
 
-void RtmpMgr::CreateRtmpClient(device_id_t device_id)
+void RtmpMgr::CreateRtmpClient(device_id_t device_id, const std::string &rtmp_url_prefix)
 {
     auto iter = m_mapClient.find(device_id);
     if (iter != m_mapClient.end())
     {
         return;
     }
-    m_mapClient[device_id] = std::make_shared<RtmpClient>(device_id);
-    Trace("RtmpMgr::CreateRtmpClient, Create RtmpClient,device_id:{:014x}, map.size()={}", device_id, Size());
+    m_mapClient[device_id] = std::make_shared<RtmpClient>(device_id, rtmp_url_prefix);
 }
 
-void RtmpMgr::CreateRtmpClient(const char *pDeviceId, size_t len)
+void RtmpMgr::CreateRtmpClient(const char *pDeviceId, size_t len, const std::string &rtmp_url_prefix)
 {
     (void)len;
-    CreateRtmpClient(GenerateDeviceIdByBuffer(pDeviceId));
+    CreateRtmpClient(GenerateDeviceIdByBuffer(pDeviceId), rtmp_url_prefix);
 }
 
 void RtmpMgr::ReleaseRtmpClient(device_id_t device_id)
 {
     m_mapClient.erase(device_id);
-    Trace("RtmpMgr::ReleaseRtmpClient, Release RtmpClient,device_id:{:014x}, map.size()={}", device_id, Size());
 }
 
 void RtmpMgr::ReleaseRtmpClient(const char *pDeviceId, size_t len)

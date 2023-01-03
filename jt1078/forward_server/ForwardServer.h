@@ -12,7 +12,7 @@ namespace forward
     class ForwardServer : public Publisher
     {
     public:
-        ForwardServer(EventLoop *eventloop, Jt1078Service *service);
+        ForwardServer(EventLoop *eventloop, Jt1078Service *service, bool is_realtime);
         virtual ~ForwardServer() override;
 
     public:
@@ -45,9 +45,11 @@ namespace forward
         EventLoop *m_eventloop;
         ListenerPtr m_listener;
 
-        std::map<session_id_t, SubscriberPtr> m_mapSubscriber; //保存所有订阅者
+        std::map<session_id_t, SubscriberPtr> m_mapSubscriber; // 保存所有订阅者
 
         Jt1078Service *m_service;
+
+        bool m_is_realtime;
     };
 } // namespace forward
 

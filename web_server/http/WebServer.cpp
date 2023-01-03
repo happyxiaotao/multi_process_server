@@ -2,9 +2,15 @@
 #include "../../core/log/Log.hpp"
 #include "../../core/ini_config.h"
 
-WebServer::WebServer()
+WebServer::WebServer(bool is_realtime_server)
+    : m_rtmp_thread(is_realtime_server), m_is_realtime_server(is_realtime_server)
 {
-    m_rtmp_thread.Start("Rtmp_Thread");
+    std::string strThreadName = "Rtmp_Thread_Realtime";
+    if (!is_realtime_server)
+    {
+        strThreadName = "Rtmp_Thread_History";
+    }
+    m_rtmp_thread.Start(strThreadName);
 }
 
 bool WebServer::InitHttpHandlers()
@@ -36,7 +42,7 @@ bool WebServer::InitHttpHandlers()
 // 所以存在触发多次，观看同一个通道的情况
 void WebServer::NotifyStart(const std::string &strDeviceId)
 {
-    Info("WebServer::NotifyStart, strDeviceId:{}", strDeviceId);
+    Info("WebServer::NotifyStart, realtime:{}, strDeviceId:{}", m_is_realtime_server, strDeviceId);
     device_id_t device_id = m_device_id_mgr.GetDeviceIdFromStr(strDeviceId);
 
     if (m_device_id_mgr.Exists(device_id))
@@ -65,7 +71,7 @@ void WebServer::NotifyStart(const std::string &strDeviceId)
 // 所以可以直接调用Remove方法删除对应的device_id
 void WebServer::NotifyStop(const std::string strDeviceId)
 {
-    Info("WebServer::NotifyStop, strDeviceId:{}", strDeviceId);
+    Info("WebServer::NotifyStop, realtime:{},strDeviceId:{}", m_is_realtime_server, strDeviceId);
     device_id_t device_id = m_device_id_mgr.GetDeviceIdFromStr(strDeviceId);
 
     // 取消订阅
@@ -87,12 +93,17 @@ bool WebServer::AsyncConnectServer()
 {
     m_jt1078_client.reset();
 
-    const std::string forward_ip = g_ini->Get("jt1078", "forward_ip", "");
-    const u_short forward_port = g_ini->GetInteger("jt1078", "forward_port", -1);
-    int connect_timeout_second = g_ini->GetInteger("jt1078", "connect_timeout", 2);
+    int connect_timeout_second = g_ini->GetInteger("jt1078_forward", "connect_timeout", 2);
+    std::string forward_ip = g_ini->Get("jt1078_forward", "realtime_forward_ip", "");
+    u_short forward_port = g_ini->GetInteger("jt1078_forward", "realtime_forward_port", -1);
+    if (!m_is_realtime_server)
+    {
+        forward_ip = g_ini->Get("jt1078_forward", "history_forward_ip", "");
+        forward_port = g_ini->GetInteger("jt1078_forward", "history_forward_port", -1);
+    }
     if (forward_ip.empty() || forward_port == -1)
     {
-        Error("WebServer::AsyncConnectServer failed, forward_ip or forward_port invalid");
+        Error("WebServer::AsyncConnectServer failed,realtime:{}, forward_ip or forward_port invalid", m_is_realtime_server);
         return false;
     }
 
@@ -106,7 +117,7 @@ bool WebServer::AsyncConnectServer()
     connect_timeout.tv_usec = 0;
     if (!m_jt1078_client->AsyncConnect(GetEventLoop(), forward_ip, forward_port, &connect_timeout))
     {
-        Error("WebServer::AsyncConnectServer failed, client async_connect failed,ip:{},port:{}", forward_ip, forward_port);
+        Error("WebServer::AsyncConnectServer failed, realtime:{},client async_connect failed,ip:{},port:{}", m_is_realtime_server, forward_ip, forward_port);
         return false;
     }
     return true;
@@ -114,7 +125,7 @@ bool WebServer::AsyncConnectServer()
 
 void WebServer::OnClientConnect(const Jt1078ClientPtr &client, bool bOk)
 {
-    Trace("WebServer::OnClientConnect, client session_id:{}, bOk:{}", client->GetSessionId(), bOk);
+    Trace("WebServer::OnClientConnect, client session_id:{}, bOk:{}, realtime:{}", client->GetSessionId(), bOk, m_is_realtime_server);
     if (!bOk)
     {
         m_jt1078_client.reset();
@@ -146,18 +157,18 @@ void WebServer::OnClientMessage(const Jt1078ClientPtr &client, const ipc::packet
 
 void WebServer::OnClientError(const Jt1078ClientPtr &client, TcpErrorType error_type)
 {
-    Error("WebServer::OnClientError, client session_id:{},remote_ip:{},remote_port:{},fd:{},error_type:{},uLastReceiveIpcPktSeqId:{}",
-          client->GetSessionId(), client->GetRemoteIp(), client->GetRemotePort(), client->GetSocketFd(), error_type, m_jt1078_client->GetLastReceiveIpcPktSeqId());
+    Error("WebServer::OnClientError,realtime:{},client session_id:{},remote_ip:{},remote_port:{},fd:{},error_type:{},uLastReceiveIpcPktSeqId:{}",
+          m_is_realtime_server, client->GetSessionId(), client->GetRemoteIp(), client->GetRemotePort(), client->GetSocketFd(), error_type, m_jt1078_client->GetLastReceiveIpcPktSeqId());
     m_jt1078_client.reset();
     m_connect_timer->StartTimer(); // 启动重连机制
 }
 
 void WebServer::OnConnectTimer()
 {
-    Trace("WebServer::OnConnectTimer");
+    Trace("WebServer::OnConnectTimer,realtime:{}", m_is_realtime_server);
     if (!AsyncConnectServer())
     {
-        Error("WebServer::OnConnectTimer failed, AsyncConnectServer failed");
+        Error("WebServer::OnConnectTimer failed,realtime:{}, AsyncConnectServer failed", m_is_realtime_server);
     }
 }
 

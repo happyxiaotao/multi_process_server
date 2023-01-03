@@ -17,22 +17,23 @@ public:
     bool Start();
 
 public:
-    void Notify1078Packet(device_id_t device_id, const jt1078::packet_t &pkt);
+    void Notify1078Packet(device_id_t device_id, const jt1078::packet_t &pkt, bool bRealtime);
 
     // bConnect=true 向808服务器发送消息，通知汽车连接本服务器
     // bConnect=false 向808服务器发送消息，通知汽车断开本服务器连接
-    void SendCommandTo808(const std::string &strDeviceId, bool bConnect);
+    void SendCommandTo808(const std::string &strDeviceId, bool bConnect, bool bRealtime);
 
     // 提示没有订阅者了
-    void NotifyNoSubscriber(const std::string &strDeviceId);
+    void NotifyNoSubscriber(const std::string &strDeviceId, bool bRealtime);
 
 private:
-private:
-    std::unique_ptr<Jt1078Server> m_jt1078_server;
-    std::unique_ptr<forward::ForwardServer> m_forward_server;
+    std::unique_ptr<Jt1078Server> m_jt1078_realtime_server;            // 实时视频服务器
+    std::unique_ptr<Jt1078Server> m_jt1078_history_server;             // 历史视频服务器
+    std::unique_ptr<forward::ForwardServer> m_forward_realtime_server; // 实时数据转发服务
+    std::unique_ptr<forward::ForwardServer> m_forward_history_server;  // 历史数据转发服务
+
     std::unique_ptr<CRedisMqServer> m_redis_server;
 
-    bool m_is_history_server; // 目前暂时通过此变量来设置是历史还是实时视频。后续考虑历史和实时合并起来。
     std::string m_redis_808_list;
     EventLoop m_eventloop;
 };

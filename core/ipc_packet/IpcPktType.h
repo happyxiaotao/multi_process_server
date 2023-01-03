@@ -26,9 +26,9 @@ namespace ipc
     const uint32_t IPC_PKT_FROM_PHONE_CLIENT = 0x00050000;  // 数据包来源于phone_client
 
     // 音视频类型是实时视频还是历史视频，占9~12位。[0x00100000,0x00f00000]
-    const uint32_t IPC_PKT_MEDIA_MASK = 0x00f00000;
-    const uint32_t IPC_PKT_MEDIA_REAL = 0x00100000;    // 实时视频，默认
-    const uint32_t IPC_PKT_MEDIA_HISTORY = 0x00200000; // 历史视频
+    // const uint32_t IPC_PKT_MEDIA_MASK = 0x00f00000;
+    // const uint32_t IPC_PKT_MEDIA_REAL = 0x00100000;    // 实时视频，默认
+    // const uint32_t IPC_PKT_MEDIA_HISTORY = 0x00200000; // 历史视频
 
     // 其他自定义数据包，由各个模块自己定义使用，占1~8位。[0x01000000,0xff000000]。一共可以标识255个分类
     const uint32_t IPC_PKT_OTHER_MASK = 0xff000000;
